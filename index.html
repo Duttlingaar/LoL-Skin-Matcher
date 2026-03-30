@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoL Skin Matcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C89B3C;
+    --gold-light: #F0E6A0;
+    --gold-dim: #7A5C1E;
+    --bg-deep: #0A0C10;
+    --bg-mid: #0F1218;
+    --bg-card: #14181F;
+    --bg-hover: #1A2030;
+    --border: rgba(200,155,60,0.2);
+    --border-bright: rgba(200,155,60,0.6);
+    --text-primary: #E8DFC8;
+    --text-secondary: #8A7A5A;
+    --text-muted: #4A4030;
+    --accent-blue: #4A90D9;
+    --accent-teal: #1AADA0;
+    --red: #C84B4B;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background atmosphere */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(200,155,60,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, rgba(74,144,217,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,12,16,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-diamond {
+    width: 20px; height: 20px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+  .logo h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .logo span {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #status-bar {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    letter-spacing: 0.03em;
+  }
+  #status-bar .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── Main layout ── */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* ── Section headers ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .section-header h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--border-bright), transparent);
+  }
+  .section-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 300;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Search & filter ── */
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 360px;
+  }
+  .search-wrap svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  .search-wrap input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 10px 12px 10px 38px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.03em;
+  }
+  .search-wrap input:focus { border-color: var(--border-bright); }
+  .search-wrap input::placeholder { color: var(--text-muted); }
+
+  .sort-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    padding: 10px 14px;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+  }
+  .sort-select:focus { border-color: var(--border-bright); }
+
+  /* ── Icon grid ── */
+  #icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    margin-bottom: 48px;
+  }
+
+  .icon-item {
+    position: relative;
+    aspect-ratio: 1;
+    cursor: pointer;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, transform 0.15s;
+    background: var(--bg-card);
+  }
+  .icon-item:hover {
+    border-color: var(--gold-dim);
+    transform: scale(1.06);
+    z-index: 2;
+  }
+  .icon-item.active {
+    border-color: var(--gold);
+    box-shadow: 0 0 16px rgba(200,155,60,0.4), inset 0 0 0 1px rgba(200,155,60,0.3);
+  }
+  .icon-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.3s;
+  }
+  .icon-item img.loading { opacity: 0; }
+  .icon-item .icon-id {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    font-size: 9px;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2px 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .icon-item:hover .icon-id { opacity: 1; }
+
+  /* ── Loading skeleton ── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+    aspect-ratio: 1;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* ── Color palette strip ── */
+  .palette-strip {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 28px;
+    min-height: 40px;
+  }
+  .palette-strip .pal-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 4px;
+    white-space: nowrap;
+  }
+  .swatch {
+    width: 32px; height: 32px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .palette-placeholder {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+    font-weight: 300;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Skin results panel ── */
+  #results-section {
+    display: none;
+  }
+  #results-section.visible {
+    display: block;
+    animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+  .selected-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .selected-icon-preview {
+    width: 52px; height: 52px;
+    border-radius: 6px;
+    border: 2px solid var(--gold);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .selected-info-text h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .selected-info-text p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 300;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Skin grid ── */
+  #skin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .skin-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+    position: relative;
+  }
+  .skin-card:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-3px);
+  }
+
+  .skin-img-wrap {
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: #0A0C10;
+  }
+  .skin-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    transition: transform 0.4s ease, opacity 0.3s;
+  }
+  .skin-img-wrap img.loading { opacity: 0; }
+  .skin-card:hover .skin-img-wrap img { transform: scale(1.04); }
+
+  .skin-match-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--bg-deep);
+  }
+  .skin-match-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--gold-dim), var(--gold));
+    transition: width 0.6s ease;
+  }
+
+  .match-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(10,12,16,0.85);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+    backdrop-filter: blur(4px);
+  }
+
+  .skin-info {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .skin-name {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .skin-champ {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+
+  .skin-swatches {
+    display: flex;
+    gap: 4px;
+  }
+  .skin-swatch {
+    width: 14px; height: 14px;
+    border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* ── Loading state ── */
+  .loading-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+  }
+  .loading-msg .spinner {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Empty state ── */
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Pagination ── */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .page-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .page-btn:hover, .page-btn.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(200,155,60,0.08);
+  }
+  .page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* ── Divider ornament ── */
+  .ornament {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 32px 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .ornament::before, .ornament::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Canvas (offscreen) ── */
+  #analysis-canvas { display: none; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    header { padding: 0 16px; }
+    main { padding: 20px 12px; }
+    #icon-grid { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
+    #skin-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-diamond"></div>
+    <div>
+      <h1>Skin Matcher</h1>
+      <span>League of Legends · Farbkoordination</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="status-bar"><span class="dot"></span><span id="status-text">Lade Daten...</span></div>
+  </div>
+</header>
+
+<canvas id="analysis-canvas"></canvas>
+
+<main>
+
+  <!-- Icon Section -->
+  <div class="section-header">
+    <h2>Profil Icons</h2>
+    <div class="section-line"></div>
+    <span class="section-count" id="icon-count">–</span>
+  </div>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" id="icon-search" placeholder="Icon ID suchen..." autocomplete="off">
+    </div>
+    <select class="sort-select" id="sort-select">
+      <option value="id-asc">ID aufsteigend</option>
+      <option value="id-desc">ID absteigend</option>
+    </select>
+  </div>
+
+  <div id="icon-grid">
+    <!-- icons rendered here -->
+  </div>
+
+  <div class="pagination" id="icon-pagination"></div>
+
+  <!-- Results Section -->
+  <div id="results-section">
+    <div class="ornament">Farbanalyse</div>
+
+    <div class="selected-info" id="selected-info" style="display:none">
+      <img class="selected-icon-preview" id="selected-preview" src="" alt="">
+      <div class="selected-info-text">
+        <h3 id="selected-title">Icon #0</h3>
+        <p id="selected-subtitle">Analysiere Farben...</p>
+      </div>
+      <div class="palette-strip" id="palette-strip" style="margin:0 0 0 auto">
+        <span class="pal-label">Palette</span>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <h2>Passende Skins</h2>
+      <div class="section-line"></div>
+      <span class="section-count" id="skin-count">–</span>
+    </div>
+
+    <div id="skin-grid">
+      <div class="loading-msg"><div class="spinner"></div>Analysiere Skins...</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const VERSION = '16.6.1';
+const BASE = `https://ddragon.leagueoflegends.com/cdn`;
+const ICON_URL = id => `${BASE}/${VERSION}/img/profileicon/${id}.png`;
+const SPLASH_URL = (champ, num) => `${BASE}/img/champion/loading/${champ}_${num}.jpg`;
+const CHAMP_LIST_URL = `${BASE}/${VERSION}/data/en_US/champion.json`;
+const CHAMP_URL = name => `${BASE}/${VERSION}/data/en_US/champion/${name}.json`;
+
+const ICONS_PER_PAGE = 120;
+const TOP_SKINS = 24;
+
+let allIcons = [];
+let filteredIcons = [];
+let currentPage = 0;
+let skinDatabase = []; // { champName, skinName, skinNum, url }
+let skinPalettes = {}; // cache: key -> [colors]
+let champDataCache = {};
+let isLoadingSkins = false;
+let skinsReady = false;
+let selectedIconId = null;
+
+// ── Color Extraction ──────────────────────────────────────────
+const canvas = document.getElementById('analysis-canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+function extractColors(img, numColors = 5) {
+  return new Promise(resolve => {
+    const size = 64;
+    canvas.width = size; canvas.height = size;
+    const tempImg = new Image();
+    tempImg.crossOrigin = 'anonymous';
+    tempImg.onload = () => {
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(tempImg, 0, 0, size, size);
+      try {
+        const data = ctx.getImageData(0, 0, size, size).data;
+        const colors = kMeans(data, numColors);
+        resolve(colors);
+      } catch(e) {
+        resolve([]);
+      }
+    };
+    tempImg.onerror = () => resolve([]);
+    tempImg.src = img.src || img;
+  });
+}
+
+function kMeans(data, k) {
+  const pixels = [];
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i+3];
+    if (a < 20) continue;
+    pixels.push([data[i], data[i+1], data[i+2]]);
+  }
+  if (pixels.length === 0) return [];
+
+  // Init centroids via k-means++
+  let centroids = [pixels[Math.floor(Math.random() * pixels.length)]];
+  while (centroids.length < k) {
+    const dists = pixels.map(p => Math.min(...centroids.map(c => colorDist2(p, c))));
+    const total = dists.reduce((s, d) => s + d, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < pixels.length; i++) {
+      r -= dists[i];
+      if (r <= 0) { centroids.push(pixels[i]); break; }
+    }
+  }
+
+  for (let iter = 0; iter < 12; iter++) {
+    const clusters = Array.from({length: k}, () => []);
+    for (const p of pixels) {
+      let best = 0, bestD = Infinity;
+      for (let j = 0; j < k; j++) {
+        const d = colorDist2(p, centroids[j]);
+        if (d < bestD) { bestD = d; best = j; }
+      }
+      clusters[best].push(p);
+    }
+    let changed = false;
+    for (let j = 0; j < k; j++) {
+      if (!clusters[j].length) continue;
+      const nr = Math.round(clusters[j].reduce((s,p)=>s+p[0],0)/clusters[j].length);
+      const ng = Math.round(clusters[j].reduce((s,p)=>s+p[1],0)/clusters[j].length);
+      const nb = Math.round(clusters[j].reduce((s,p)=>s+p[2],0)/clusters[j].length);
+      if (nr !== centroids[j][0] || ng !== centroids[j][1] || nb !== centroids[j][2]) changed = true;
+      centroids[j] = [nr, ng, nb];
+    }
+    if (!changed) break;
+  }
+  return centroids.map(c => `rgb(${c[0]},${c[1]},${c[2]})`);
+}
+
+function colorDist2(a, b) {
+  return (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2;
+}
+
+function colorSimilarity(palA, palB) {
+  if (!palA.length || !palB.length) return 0;
+  const toRgb = s => s.match(/\d+/g).map(Number);
+  let totalScore = 0;
+  for (const ca of palA) {
+    const a = toRgb(ca);
+    let best = Infinity;
+    for (const cb of palB) {
+      const b = toRgb(cb);
+      best = Math.min(best, Math.sqrt(colorDist2(a, b)));
+    }
+    // Normalize: max dist ~441 (sqrt(255^2*3))
+    totalScore += 1 - (best / 441);
+  }
+  return totalScore / palA.length;
+}
+
+// ── Data Loading ──────────────────────────────────────────────
+async function loadIcons() {
+  setStatus('Lade Profile Icons...');
+  try {
+    const res = await fetch(`${BASE}/${VERSION}/data/en_US/profileicon.json`);
+    const json = await res.json();
+    allIcons = Object.values(json.data).map(d => d.id);
+    allIcons.sort((a,b) => Number(a) - Number(b));
+    filteredIcons = [...allIcons];
+    document.getElementById('icon-count').textContent = `${allIcons.length} Icons`;
+    setStatus(`${allIcons.length} Icons geladen`);
+    renderIconPage(0);
+    // start loading skin DB in background
+    loadSkinDatabase();
+  } catch(e) {
+    setStatus('Fehler beim Laden');
+    document.getElementById('icon-grid').innerHTML = '<div class="empty-state">Fehler beim Laden der Icons. Prüfe die Verbindung.</div>';
+  }
+}
+
+async function loadSkinDatabase() {
+  if (isLoadingSkins) return;
+  isLoadingSkins = true;
+  setStatus('Lade Champion-Daten...');
+  try {
+    const res = await fetch(CHAMP_LIST_URL);
+    const json = await res.json();
+    const champNames = Object.keys(json.data);
+    setStatus(`Lade Skins (0/${champNames.length})...`);
+
+    // Load all champion JSONs in batches of 10
+    const BATCH = 10;
+    for (let i = 0; i < champNames.length; i += BATCH) {
+      const batch = champNames.slice(i, i + BATCH);
+      await Promise.all(batch.map(async name => {
+        try {
+          const r = await fetch(CHAMP_URL(name));
+          const cj = await r.json();
+          const champData = Object.values(cj.data)[0];
+          champDataCache[name] = champData;
+          for (const skin of champData.skins) {
+            skinDatabase.push({
+              champName: name,
+              skinName: skin.name === 'default' ? champData.name : skin.name,
+              skinNum: skin.num,
+              url: SPLASH_URL(name, skin.num)
+            });
+          }
+        } catch(e) {}
+      }));
+      setStatus(`Lade Skins (${Math.min(i+BATCH, champNames.length)}/${champNames.length})...`);
+    }
+    skinsReady = true;
+    setStatus(`${skinDatabase.length} Skins bereit · ${allIcons.length} Icons`);
+    // If icon already selected, re-run analysis
+    if (selectedIconId !== null) {
+      analyzeAndShow(selectedIconId);
+    }
+  } catch(e) {
+    setStatus('Fehler beim Laden der Champions');
+  }
+}
+
+// ── Render Icons ──────────────────────────────────────────────
+function renderIconPage(page) {
+  currentPage = page;
+  const grid = document.getElementById('icon-grid');
+  const start = page * ICONS_PER_PAGE;
+  const slice = filteredIcons.slice(start, start + ICONS_PER_PAGE);
+
+  if (filteredIcons.length === 0) {
+    grid.innerHTML = '<div class="empty-state">Keine Icons gefunden.</div>';
+    renderPagination();
+    return;
+  }
+
+  grid.innerHTML = '';
+  for (const id of slice) {
+    const item = document.createElement('div');
+    item.className = 'icon-item' + (id == selectedIconId ? ' active' : '');
+    item.dataset.id = id;
+    const img = document.createElement('img');
+    img.className = 'loading';
+    img.src = ICON_URL(id);
+    img.alt = `Icon ${id}`;
+    img.onload = () => img.classList.remove('loading');
+    img.onerror = () => { item.style.opacity = '0.3'; };
+    const label = document.createElement('div');
+    label.className = 'icon-id';
+    label.textContent = `#${id}`;
+    item.appendChild(img);
+    item.appendChild(label);
+    item.addEventListener('click', () => selectIcon(id, img));
+    grid.appendChild(item);
+  }
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filteredIcons.length / ICONS_PER_PAGE);
+  const pag = document.getElementById('icon-pagination');
+  if (total <= 1) { pag.innerHTML = ''; return; }
+
+  pag.innerHTML = '';
+  const prev = document.createElement('button');
+  prev.className = 'page-btn';
+  prev.textContent = '← Zurück';
+  prev.disabled = currentPage === 0;
+  prev.onclick = () => { renderIconPage(currentPage - 1); window.scrollTo({top:0,behavior:'smooth'}); };
+  pag.appendChild(prev);
+
+  // Show max 7 page numbers
+  const range = [];
+  for (let i = Math.max(0, currentPage-3); i <= Math.min(total-1, currentPage+3); i++) range.push(i);
+  for (const p of range) {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+    btn.textContent = p + 1;
+    btn.onclick = () => { renderIconPage(p); window.scrollTo({top:0,behavior:'smooth'}); };
+    pag.appendChild(btn);
+  }
+
+  const next = document.createElement('button');
+  next.className = 'page-btn';
+  next.textContent = 'Weiter →';
+  next.disabled = currentPage >= total - 1;
+  next.onclick = () => { renderIconPage(currentPage + 1); window.scrollTo({top:0,behavior:'smooth'}); };
+  pag.appendChild(next);
+}
+
+// ── Icon Selection ────────────────────────────────────────────
+async function selectIcon(id, imgEl) {
+  // Update active state
+  document.querySelectorAll('.icon-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.icon-item[data-id="${id}"]`)?.classList.add('active');
+  selectedIconId = id;
+
+  // Show results section
+  const resultsSection = document.getElementById('results-section');
+  resultsSection.className = '';
+  void resultsSection.offsetWidth;
+  resultsSection.className = 'visible';
+  resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Update selected info
+  document.getElementById('selected-info').style.display = 'flex';
+  const preview = document.getElementById('selected-preview');
+  preview.src = ICON_URL(id);
+  document.getElementById('selected-title').textContent = `Icon #${id}`;
+  document.getElementById('selected-subtitle').textContent = skinsReady
+    ? 'Analysiere Farben...'
+    : 'Lade noch Champion-Daten...';
+
+  // Show loading in skin grid
+  document.getElementById('skin-grid').innerHTML = '<div class="loading-msg"><div class="spinner"></div>Analysiere Farbpalette...</div>';
+  document.getElementById('skin-count').textContent = '–';
+
+  // Clear palette
+  const palStrip = document.getElementById('palette-strip');
+  palStrip.innerHTML = '<span class="pal-label">Palette</span><span class="palette-placeholder">Analysiere...</span>';
+
+  // Extract icon colors
+  const iconImg = imgEl || (() => { const i = new Image(); i.crossOrigin='anonymous'; i.src=ICON_URL(id); return i; })();
+  const iconColors = await extractColors(iconImg);
+
+  // Show palette
+  palStrip.innerHTML = '<span class="pal-label">Palette</span>';
+  for (const c of iconColors) {
+    const sw = document.createElement('div');
+    sw.className = 'swatch';
+    sw.style.background = c;
+    sw.title = c;
+    palStrip.appendChild(sw);
+  }
+
+  document.getElementById('selected-subtitle').textContent =
+    skinsReady ? `${iconColors.length} Farben extrahiert` : 'Warte auf Champion-Daten...';
+
+  analyzeAndShow(id, iconColors);
+}
+
+async function analyzeAndShow(id, preExtractedColors = null) {
+  if (!skinsReady) {
+    document.getElementById('skin-grid').innerHTML =
+      '<div class="loading-msg"><div class="spinner"></div>Noch ' +
+      (skinDatabase.length === 0 ? 'Champion-Daten werden geladen...' : 'Skins werden geladen...') + '</div>';
+    return;
+  }
+
+  const iconImg = new Image();
+  iconImg.crossOrigin = 'anonymous';
+  iconImg.src = ICON_URL(id);
+
+  const iconColors = preExtractedColors || await new Promise(res => {
+    iconImg.onload = async () => res(await extractColors(iconImg));
+    iconImg.onerror = () => res([]);
+  });
+
+  if (!iconColors.length) {
+    document.getElementById('skin-grid').innerHTML = '<div class="empty-state">Konnte Icon nicht analysieren (CORS).</div>';
+    return;
+  }
+
+  document.getElementById('skin-grid').innerHTML =
+    '<div class="loading-msg"><div class="spinner"></div>Vergleiche ' + skinDatabase.length + ' Skins...</div>';
+
+  // Score all skins (lazy: load image, extract, compare)
+  const scored = [];
+  const SAMPLE = Math.min(skinDatabase.length, skinDatabase.length); // all
+
+  // We preload small batches and extract
+  const BATCH = 20;
+  for (let i = 0; i < SAMPLE && i < skinDatabase.length; i += BATCH) {
+    const batch = skinDatabase.slice(i, i + BATCH);
+    await Promise.all(batch.map(async skin => {
+      const key = `${skin.champName}_${skin.skinNum}`;
+      let pal = skinPalettes[key];
+      if (!pal) {
+        pal = await extractColors(skin.url);
+        skinPalettes[key] = pal;
+      }
+      if (pal.length) {
+        const score = colorSimilarity(iconColors, pal);
+        scored.push({ ...skin, score, palette: pal });
+      }
+    }));
+    if (i % 100 === 0 && i > 0) {
+      setStatus(`Analysiere... ${i}/${SAMPLE}`);
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  const top = scored.slice(0, TOP_SKINS);
+
+  setStatus(`${skinDatabase.length} Skins analysiert · ${allIcons.length} Icons`);
+  document.getElementById('selected-subtitle').textContent =
+    `${iconColors.length} Farben · ${skinDatabase.length} Skins verglichen`;
+  document.getElementById('skin-count').textContent = `Top ${top.length} Matches`;
+
+  renderSkins(top);
+}
+
+function renderSkins(skins) {
+  const grid = document.getElementById('skin-grid');
+  if (!skins.length) {
+    grid.innerHTML = '<div class="empty-state">Keine Skins gefunden.</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  const maxScore = skins[0].score;
+
+  for (const skin of skins) {
+    const pct = Math.round((skin.score / Math.max(maxScore, 1)) * 100);
+    const card = document.createElement('div');
+    card.className = 'skin-card';
+
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'skin-img-wrap';
+
+    const img = document.createElement('img');
+    img.className = 'loading';
+    img.src = skin.url;
+    img.alt = skin.skinName;
+    img.onload = () => img.classList.remove('loading');
+    img.onerror = () => { imgWrap.style.background = '#1A1F2A'; };
+
+    const bar = document.createElement('div');
+    bar.className = 'skin-match-bar';
+    const fill = document.createElement('div');
+    fill.className = 'skin-match-fill';
+    fill.style.width = '0%';
+    bar.appendChild(fill);
+    setTimeout(() => fill.style.width = pct + '%', 100);
+
+    const badge = document.createElement('div');
+    badge.className = 'match-badge';
+    badge.textContent = pct + '%';
+
+    imgWrap.appendChild(img);
+    imgWrap.appendChild(bar);
+    imgWrap.appendChild(badge);
+
+    const info = document.createElement('div');
+    info.className = 'skin-info';
+
+    const name = document.createElement('div');
+    name.className = 'skin-name';
+    name.textContent = skin.skinName;
+
+    const champ = document.createElement('div');
+    champ.className = 'skin-champ';
+    champ.textContent = skin.champName;
+
+    const swatches = document.createElement('div');
+    swatches.className = 'skin-swatches';
+    for (const c of skin.palette.slice(0, 5)) {
+      const sw = document.createElement('div');
+      sw.className = 'skin-swatch';
+      sw.style.background = c;
+      swatches.appendChild(sw);
+    }
+
+    info.appendChild(name);
+    info.appendChild(champ);
+    info.appendChild(swatches);
+    card.appendChild(imgWrap);
+    card.appendChild(info);
+    grid.appendChild(card);
+  }
+}
+
+// ── Search & Sort ──────────────────────────────────────────────
+document.getElementById('icon-search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  filteredIcons = q
+    ? allIcons.filter(id => String(id).includes(q))
+    : [...allIcons];
+  applySort();
+  renderIconPage(0);
+  document.getElementById('icon-count').textContent =
+    filteredIcons.length === allIcons.length
+      ? `${allIcons.length} Icons`
+      : `${filteredIcons.length} / ${allIcons.length}`;
+});
+
+document.getElementById('sort-select').addEventListener('change', e => {
+  applySort();
+  renderIconPage(0);
+});
+
+function applySort() {
+  const val = document.getElementById('sort-select').value;
+  if (val === 'id-asc') filteredIcons.sort((a,b) => Number(a) - Number(b));
+  else if (val === 'id-desc') filteredIcons.sort((a,b) => Number(b) - Number(a));
+}
+
+function setStatus(msg) {
+  document.getElementById('status-text').textContent = msg;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadIcons();
+</script>
+</body>
+</html>
