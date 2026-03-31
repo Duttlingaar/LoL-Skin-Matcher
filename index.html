@@ -79,6 +79,9 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 .sel-icon-info{flex:1;min-width:100px}
 .sel-icon-info h3{font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.06em;margin-bottom:2px}
 .sel-icon-info p{font-size:12px;color:var(--text2);font-weight:300}
+.sel-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sel-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;background:var(--bg-hover);border:1px solid var(--border);font-size:10px;color:var(--text2);line-height:1.2}
+.sel-sub em{color:var(--text3);font-style:normal}
 .sel-palette{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
 .sel-pal-label{font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-right:2px}
 .swatch{width:22px;height:22px;border-radius:3px;border:1px solid rgba(255,255,255,.08);transition:transform .12s;cursor:default}
@@ -182,11 +185,13 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
   <div class="controls">
     <div class="srch-wrap">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="isrch" placeholder="Search icon ID..." autocomplete="off">
+      <input type="text" id="isrch" placeholder="Search icon name or ID..." autocomplete="off">
     </div>
     <select class="sort-sel" id="isort">
-      <option value="desc">ID ↓</option>
-      <option value="asc">ID ↑</option>
+      <option value="release_desc">Newest Release</option>
+      <option value="release_asc">Oldest Release</option>
+      <option value="name_asc">Name A-Z</option>
+      <option value="name_desc">Name Z-A</option>
     </select>
   </div>
   <div id="igrid"></div>
@@ -198,8 +203,9 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
     <div class="sel-bar">
       <img class="sel-icon-img" id="sel-img" src="" alt="">
       <div class="sel-icon-info">
-        <h3 id="sel-title">Icon #–</h3>
-        <p id="sel-sub">Extracting colors...</p>
+        <h3 id="sel-title">Icon</h3>
+        <p id="sel-sub"></p>
+        <div class="sel-meta" id="sel-meta"></div>
       </div>
       <div class="sel-palette">
         <span class="sel-pal-label">Palette</span>
@@ -250,6 +256,7 @@ const VER = '16.6.1';
 const DD  = 'https://ddragon.leagueoflegends.com/cdn';
 const CD  = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default';
 const FE  = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images';
+const ICON_META_URL = `${CD}/v1/summoner-icons.json`;
 
 const ICON_URL = id    => `${CD}/v1/profile-icons/${id}.jpg`;
 const SPLASH   = (c,n) => `${DD}/img/champion/splash/${c}_${n}.jpg`;
@@ -262,7 +269,6 @@ const RANKED_TIERS = ['iron','bronze','silver','gold','platinum','emerald','diam
 const CRYSTAL_TIERS= ['iron','bronze','silver','gold','platinum','diamond','master','grandmaster','challenger'];
 
 const BORDERS = [
-  {n:'Default', url:`${THEMED}/theme-1-border.png`},
   ...RANKED_TIERS.map(t=>({n:t[0].toUpperCase()+t.slice(1), url:`${WINGS}/wings_${t}.png`})),
   ...Array.from({length:21},(_,i)=>({n:`Theme ${i+1}`, url:`${THEMED}/theme-${i+1}-border.png`})),
 ];
@@ -287,6 +293,7 @@ const PALETTE_DB_VERSION = 1;
 const PALETTE_STORE = 'palettes';
 
 let iconIds = [], filtIds = [], iPage = 0;
+let iconMeta = new Map();
 let skinDB = [], skinsOK = false;
 let iconCols = 1;
 let resultCols = 1, resultRowsShown = 0;
@@ -504,8 +511,10 @@ function isRenderableSkin(skin) {
 async function init() {
   setStatus('Loading icons...');
   try {
-    const j = await (await fetch(`${DD}/${VER}/data/en_US/profileicon.json`)).json();
-    iconIds = Object.values(j.data).map(d=>Number(d.id)).sort((a,b)=>b-a);
+    const icons = await (await fetch(ICON_META_URL)).json();
+    iconMeta = new Map(icons.map(icon => [Number(icon.id), icon]));
+    iconIds = icons.map(icon => Number(icon.id));
+    sortIcons(document.getElementById('isort').value);
     filtIds = [...iconIds];
     document.getElementById('icnt').textContent = `${iconIds.length} Icons`;
     setStatus(`${iconIds.length} icons loaded`);
@@ -550,6 +559,68 @@ async function loadSkins() {
 
 // --- Icon grid ---
 
+function getIconMeta(id) {
+  return iconMeta.get(Number(id)) || null;
+}
+
+function getLocalizedField(entries, field) {
+  if (!Array.isArray(entries)) return '';
+  const riotEntry = entries.find(entry => entry?.region === 'riot' && entry?.[field]);
+  return riotEntry?.[field] || entries.find(entry => entry?.[field])?.[field] || '';
+}
+
+function getRarityLabel(value) {
+  const labels = {
+    0: 'Common',
+    1: 'Uncommon',
+    2: 'Rare',
+    3: 'Mythic'
+  };
+  return labels[value] || `Rarity ${value}`;
+}
+
+function getIconName(id) {
+  return getIconMeta(id)?.title || `Icon #${id}`;
+}
+
+function getIconReleaseYear(id) {
+  return getIconMeta(id)?.yearReleased || 0;
+}
+
+function getIconHowToGet(id) {
+  const meta = getIconMeta(id);
+  if (!meta) return 'Unknown';
+  const primaryDescription = getLocalizedField(meta.descriptions, 'description');
+  if (primaryDescription) return primaryDescription;
+  const rarity = getLocalizedField(meta.rarities, 'rarity');
+  if (rarity !== '') return `Availability: ${getRarityLabel(rarity)}`;
+  if (Array.isArray(meta.disabledRegions) && meta.disabledRegions.length)
+    return `Unavailable in: ${meta.disabledRegions.join(', ')}`;
+  return 'No acquisition info available';
+}
+
+function applyIconFilter(query) {
+  const q = query.trim().toLowerCase();
+  filtIds = q
+    ? iconIds.filter(id => String(id).includes(q) || getIconName(id).toLowerCase().includes(q))
+    : [...iconIds];
+  document.getElementById('icnt').textContent = filtIds.length===iconIds.length
+    ? `${iconIds.length} Icons`
+    : `${filtIds.length} / ${iconIds.length}`;
+  iPage = 0;
+  renderIcons();
+}
+
+function sortIcons(mode) {
+  const sorters = {
+    release_desc: (a, b) => getIconReleaseYear(b) - getIconReleaseYear(a) || b - a,
+    release_asc:  (a, b) => getIconReleaseYear(a) - getIconReleaseYear(b) || a - b,
+    name_asc:     (a, b) => getIconName(a).localeCompare(getIconName(b)) || a - b,
+    name_desc:    (a, b) => getIconName(b).localeCompare(getIconName(a)) || b - a
+  };
+  iconIds.sort(sorters[mode] || sorters.release_desc);
+}
+
 function getGridColumns(id) {
   const grid = document.getElementById(id);
   const style = getComputedStyle(grid);
@@ -584,7 +655,7 @@ function renderIcons() {
     const img = document.createElement('img');
     img.className = 'ld';
     img.src = ICON_URL(id);
-    img.alt = '';
+    img.alt = getIconName(id);
     img.onload = () => img.classList.remove('ld');
     img.onerror = () => { item.style.opacity='.2'; };
     item.appendChild(img);
@@ -642,6 +713,7 @@ function scrollTop() { window.scrollTo({top:0, behavior:'smooth'}); }
 // --- Icon selection ---
 
 async function selectIcon(id) {
+  const meta = getIconMeta(id);
   sel.icon = id;
   document.querySelectorAll('.iitem').forEach(el => el.classList.toggle('sel', Number(el.dataset.id)===id));
 
@@ -650,16 +722,28 @@ async function selectIcon(id) {
   cs.scrollIntoView({behavior:'smooth', block:'start'});
 
   document.getElementById('sel-img').src = ICON_URL(id);
-  document.getElementById('sel-title').textContent = `Icon #${id}`;
-  document.getElementById('sel-sub').textContent = 'Extracting colors...';
+  document.getElementById('sel-title').textContent = getIconName(id);
+  document.getElementById('sel-sub').innerHTML = `${getIconHowToGet(id)}${Array.isArray(meta?.disabledRegions) && meta.disabledRegions.length ? ` <em>Unavailable in: ${meta.disabledRegions.join(', ')}</em>` : ''}`;
   document.getElementById('icon-swatches').innerHTML = '';
+  const metaWrap = document.getElementById('sel-meta');
+  metaWrap.innerHTML = '';
+  const chips = [
+    meta?.yearReleased ? `Released ${meta.yearReleased}` : null,
+    meta?.isLegacy ? 'Legacy' : null,
+    getLocalizedField(meta?.rarities, 'rarity') !== '' ? getRarityLabel(getLocalizedField(meta.rarities, 'rarity')) : null
+  ].filter(Boolean);
+  chips.forEach(label => {
+    const chip = document.createElement('span');
+    chip.className = 'sel-chip';
+    chip.textContent = label;
+    metaWrap.appendChild(chip);
+  });
 
   const colors = await getPal(ICON_URL(id), PALETTE_SIZE, 'icon');
   pals.icon = colors;
 
   const sw = document.getElementById('icon-swatches');
   colors.slice(0, ICON_DISPLAY_SWATCH_LIMIT).forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
-  document.getElementById('sel-sub').textContent = `${Math.min(colors.length, ICON_DISPLAY_SWATCH_LIMIT)} colors extracted`;
   document.getElementById('abtn').disabled = false;
   updateCombinedPalette();
 }
@@ -814,20 +898,11 @@ function renderResults() {
 
 // --- Search / Sort ---
 
-document.getElementById('isrch').addEventListener('input', e => {
-  const q = e.target.value.trim();
-  filtIds = q ? iconIds.filter(id=>String(id).includes(q)) : [...iconIds];
-  document.getElementById('icnt').textContent = filtIds.length===iconIds.length
-    ? `${iconIds.length} Icons`
-    : `${filtIds.length} / ${iconIds.length}`;
-  iPage = 0;
-  renderIcons();
-});
+document.getElementById('isrch').addEventListener('input', e => applyIconFilter(e.target.value));
 
 document.getElementById('isort').addEventListener('change', e => {
-  filtIds.sort(e.target.value==='asc' ? (a,b)=>a-b : (a,b)=>b-a);
-  iPage = 0;
-  renderIcons();
+  sortIcons(e.target.value);
+  applyIconFilter(document.getElementById('isrch').value);
 });
 
 // --- Analyze ---
