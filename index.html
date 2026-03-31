@@ -281,12 +281,18 @@ const BORDER_MATCH_LIMIT = 5;
 const CRYSTAL_MATCH_LIMIT = 4;
 const RESULT_SWATCH_LIMIT = 10;
 const LOAD_MORE_ROWS = 2;
+const ANALYZE_BATCH_SIZE = 20;
+const PALETTE_DB_NAME = 'skin-matcher-cache';
+const PALETTE_DB_VERSION = 1;
+const PALETTE_STORE = 'palettes';
 
 let iconIds = [], filtIds = [], iPage = 0;
 let skinDB = [], skinsOK = false;
 let iconCols = 1;
 let resultCols = 1, resultRowsShown = 0;
 let scoredResults = [];
+let paletteDBPromise = null;
+let analyzeToken = 0;
 const palCache = {};
 const sel  = {icon:null, border:null, crystal:null};
 const pals = {icon:[], border:[], crystal:[]};
@@ -296,29 +302,82 @@ const ctx = cvs.getContext('2d', {willReadFrequently:true});
 
 // --- Color extraction ---
 
+function openPaletteDB() {
+  if (!('indexedDB' in window)) return Promise.resolve(null);
+  if (paletteDBPromise) return paletteDBPromise;
+  paletteDBPromise = new Promise(resolve => {
+    const req = indexedDB.open(PALETTE_DB_NAME, PALETTE_DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PALETTE_STORE)) db.createObjectStore(PALETTE_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+  return paletteDBPromise;
+}
+
+async function readPaletteCache(key) {
+  const db = await openPaletteDB();
+  if (!db) return null;
+  return new Promise(resolve => {
+    const tx = db.transaction(PALETTE_STORE, 'readonly');
+    const req = tx.objectStore(PALETTE_STORE).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+async function writePaletteCache(key, palette) {
+  const db = await openPaletteDB();
+  if (!db) return;
+  return new Promise(resolve => {
+    const tx = db.transaction(PALETTE_STORE, 'readwrite');
+    tx.objectStore(PALETTE_STORE).put(palette, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
+
+async function getCachedPal(url, k=PALETTE_SIZE, mode='default') {
+  const key = `${url}|${k}|${mode}`;
+  if (palCache[key]) return await palCache[key];
+  const cached = await readPaletteCache(key);
+  if (cached) palCache[key] = cached;
+  return cached;
+}
+
 async function getPal(url, k=PALETTE_SIZE, mode='default') {
   const key = `${url}|${k}|${mode}`;
   if (palCache[key]) return palCache[key];
-  return new Promise(res => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      cvs.width = 64; cvs.height = 64;
-      ctx.clearRect(0,0,64,64);
-      ctx.drawImage(img,0,0,64,64);
-      try {
-        let p = dedup(kMeans(ctx.getImageData(0,0,64,64).data, k, {
-          size: 64,
-          focusCenter: mode === 'icon'
-        }), 24);
-        if (mode === 'icon') p = diversifyColors(p, k, 78);
-        palCache[key]=p;
-        res(p);
-      }
-      catch(e) { res([]); }
-    };
-    img.onerror = () => res([]);
-    img.src = url;
+  palCache[key] = (async () => {
+    const cached = await readPaletteCache(key);
+    if (cached) return cached;
+    return new Promise(res => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        cvs.width = 64; cvs.height = 64;
+        ctx.clearRect(0,0,64,64);
+        ctx.drawImage(img,0,0,64,64);
+        try {
+          let p = dedup(kMeans(ctx.getImageData(0,0,64,64).data, k, {
+            size: 64,
+            focusCenter: mode === 'icon'
+          }), 24);
+          if (mode === 'icon') p = diversifyColors(p, k, 78);
+          writePaletteCache(key, p);
+          res(p);
+        }
+        catch(e) { res([]); }
+      };
+      img.onerror = () => res([]);
+      img.src = url;
+    });
+  })();
+  return palCache[key].then(result => {
+    palCache[key] = result;
+    return result;
   });
 }
 
@@ -679,11 +738,7 @@ function updateCombinedPalette() {
   const all = getCombinedPalette();
   const sw  = document.getElementById('comb-sw');
   sw.innerHTML = '';
-  if (!pals.border.length && !pals.crystal.length) {
-    sw.innerHTML = '<span class="pe">Add a border or crystal to expand the palette</span>';
-  } else {
-    all.forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
-  }
+  all.forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
   document.getElementById('src-icon').classList.toggle('on', !!pals.icon.length);
   document.getElementById('src-bd').classList.toggle('on',   !!pals.border.length);
   document.getElementById('src-cr').classList.toggle('on',   !!pals.crystal.length);
@@ -778,6 +833,7 @@ document.getElementById('isort').addEventListener('change', e => {
 // --- Analyze ---
 
 document.getElementById('abtn').addEventListener('click', async () => {
+  const token = ++analyzeToken;
   const combined = getCombinedPalette();
   if (!combined.length) return;
   // Match each splash with the same number of colors currently active in the combined palette.
@@ -794,21 +850,49 @@ document.getElementById('abtn').addEventListener('click', async () => {
   if (!skinsOK) await new Promise(res => { const check=()=>skinsOK?res():setTimeout(check,400); check(); });
 
   const scored = [];
-  const BATCH = 20;
-  for (let i=0; i<skinDB.length; i+=BATCH) {
-    await Promise.all(skinDB.slice(i,i+BATCH).map(async s => {
-      const pal = await getPal(s.url, comparisonPaletteSize);
-      if (pal.length) scored.push({...s, score:colorSim(combined,pal), palette:pal});
+  const pending = [];
+  for (let i=0; i<skinDB.length; i+=ANALYZE_BATCH_SIZE) {
+    if (token !== analyzeToken) return;
+    await Promise.all(skinDB.slice(i,i+ANALYZE_BATCH_SIZE).map(async s => {
+      const pal = await getCachedPal(s.url, comparisonPaletteSize);
+      if (pal?.length) scored.push({...s, score:colorSim(combined,pal), palette:pal});
+      else pending.push(s);
     }));
-    if (i%200===0 && i>0) setStatus(`Comparing... ${i}/${skinDB.length}`);
+    if (i%200===0 || i+ANALYZE_BATCH_SIZE>=skinDB.length)
+      setStatus(`Checking cache ${Math.min(i+ANALYZE_BATCH_SIZE, skinDB.length)}/${skinDB.length}...`);
   }
 
   scored.sort((a,b) => b.score-a.score);
-  setStatus(`${skinDB.length} skins analyzed`);
-  document.getElementById('abtn').disabled = false;
   scoredResults = scored;
   resultRowsShown = 0;
   renderResults();
+
+  setStatus(
+    pending.length
+      ? `${scored.length} cached matches ready, refining ${pending.length} more...`
+      : `${scored.length} cached matches ready`
+  );
+
+  for (let i=0; i<pending.length; i+=ANALYZE_BATCH_SIZE) {
+    if (token !== analyzeToken) return;
+    await Promise.all(pending.slice(i,i+ANALYZE_BATCH_SIZE).map(async s => {
+      const pal = await getPal(s.url, comparisonPaletteSize);
+      if (pal.length) scored.push({...s, score:colorSim(combined,pal), palette:pal});
+    }));
+    if (i%100===0 || i+ANALYZE_BATCH_SIZE>=pending.length) {
+      scored.sort((a,b) => b.score-a.score);
+      scoredResults = scored;
+      renderResults();
+      setStatus(`Refining matches ${Math.min(i+ANALYZE_BATCH_SIZE, pending.length)}/${pending.length}...`);
+    }
+  }
+
+  if (token !== analyzeToken) return;
+  scored.sort((a,b) => b.score-a.score);
+  scoredResults = scored;
+  renderResults();
+  setStatus(`${skinDB.length} skins analyzed`);
+  document.getElementById('abtn').disabled = false;
 });
 
 document.getElementById('more-btn').addEventListener('click', () => {
