@@ -274,9 +274,9 @@ const CRYSTALS = CRYSTAL_TIERS.map(t=>({
 
 const ICON_ROWS_PER_PAGE = 6;
 const TOP = 30;
-const PALETTE_SIZE = 10;
-const ICON_DISPLAY_SWATCH_LIMIT = 5;
-const ICON_MATCH_LIMIT = 5;
+const PALETTE_SIZE = 14;
+const ICON_DISPLAY_SWATCH_LIMIT = 8;
+const ICON_MATCH_LIMIT = 8;
 const BORDER_MATCH_LIMIT = 5;
 const CRYSTAL_MATCH_LIMIT = 4;
 const RESULT_SWATCH_LIMIT = 10;
@@ -296,8 +296,8 @@ const ctx = cvs.getContext('2d', {willReadFrequently:true});
 
 // --- Color extraction ---
 
-async function getPal(url, k=PALETTE_SIZE) {
-  const key = `${url}|${k}`;
+async function getPal(url, k=PALETTE_SIZE, mode='default') {
+  const key = `${url}|${k}|${mode}`;
   if (palCache[key]) return palCache[key];
   return new Promise(res => {
     const img = new Image();
@@ -307,7 +307,11 @@ async function getPal(url, k=PALETTE_SIZE) {
       ctx.clearRect(0,0,64,64);
       ctx.drawImage(img,0,0,64,64);
       try {
-        const p = dedup(kMeans(ctx.getImageData(0,0,64,64).data, k), 24);
+        let p = dedup(kMeans(ctx.getImageData(0,0,64,64).data, k, {
+          size: 64,
+          focusCenter: mode === 'icon'
+        }), 24);
+        if (mode === 'icon') p = diversifyColors(p, k, 78);
         palCache[key]=p;
         res(p);
       }
@@ -318,37 +322,74 @@ async function getPal(url, k=PALETTE_SIZE) {
   });
 }
 
-function kMeans(data, k) {
+function kMeans(data, k, opts={}) {
   const px = [];
-  for (let i=0; i<data.length; i+=4) if (data[i+3]>20) px.push([data[i],data[i+1],data[i+2]]);
+  const size = opts.size || 64;
+  const mid = (size - 1) / 2;
+  const maxDist = Math.sqrt(mid*mid + mid*mid) || 1;
+  for (let i=0; i<data.length; i+=4) {
+    if (data[i+3] <= 20) continue;
+    const idx = i / 4;
+    const x = idx % size;
+    const y = Math.floor(idx / size);
+    let weight = 1;
+    if (opts.focusCenter) {
+      const dx = x - mid;
+      const dy = y - mid;
+      const dist = Math.sqrt(dx*dx + dy*dy) / maxDist;
+      const centerBoost = 1 + Math.max(0, 1 - dist) * 2.2;
+      const innerBoost = (x > size*0.12 && x < size*0.88 && y > size*0.08 && y < size*0.92) ? 1.25 : 0.75;
+      weight = centerBoost * innerBoost;
+    }
+    px.push({rgb:[data[i],data[i+1],data[i+2]], weight});
+  }
   if (!px.length) return [];
-  let C = [px[~~(Math.random()*px.length)]];
+  let C = [px[~~(Math.random()*px.length)].rgb];
   while (C.length < k) {
-    const ds = px.map(p=>Math.min(...C.map(c=>dist2(p,c))));
+    const ds = px.map(p=>Math.min(...C.map(c=>dist2(p.rgb,c))) * p.weight);
     const s = ds.reduce((a,b)=>a+b, 0);
     let r = Math.random()*s;
-    for (let i=0; i<px.length; i++) { r-=ds[i]; if (r<=0) { C.push(px[i]); break; } }
+    for (let i=0; i<px.length; i++) { r-=ds[i]; if (r<=0) { C.push(px[i].rgb); break; } }
   }
   for (let it=0; it<12; it++) {
     const cl = Array.from({length:k}, ()=>[]);
-    px.forEach(p => { let b=0,bd=1e9; C.forEach((c,j)=>{ const v=dist2(p,c); if(v<bd){bd=v;b=j;} }); cl[b].push(p); });
+    px.forEach(p => {
+      let b=0,bd=1e9;
+      C.forEach((c,j)=>{ const v=dist2(p.rgb,c); if(v<bd){bd=v;b=j;} });
+      cl[b].push(p);
+    });
     let changed = false;
     C = C.map((c,j) => {
       if (!cl[j].length) return c;
-      const n = [0,1,2].map(i=>Math.round(cl[j].reduce((s,p)=>s+p[i],0)/cl[j].length));
+      const tw = cl[j].reduce((s,p)=>s+p.weight,0) || 1;
+      const n = [0,1,2].map(i=>Math.round(cl[j].reduce((s,p)=>s+p.rgb[i]*p.weight,0)/tw));
       if (n.some((v,i)=>v!==c[i])) changed = true;
       return n;
     });
     if (!changed) break;
   }
-  return C.map(c=>`rgb(${c[0]},${c[1]},${c[2]})`);
+  const weights = Array.from({length:C.length}, () => 0);
+  px.forEach(p => {
+    let best = 0, bestDist = 1e9;
+    C.forEach((c,j) => {
+      const v = dist2(p.rgb,c);
+      if (v < bestDist) { bestDist = v; best = j; }
+    });
+    weights[best] += p.weight;
+  });
+
+  return C
+    .map((c, i) => ({color: c, weight: weights[i]}))
+    .sort((a, b) => b.weight - a.weight)
+    .map(({color}) => `rgb(${color[0]},${color[1]},${color[2]})`);
 }
 
 function dist2(a, b) { return (a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2; }
 
+function rgb(s) { return s.match(/\d+/g).map(Number); }
+
 function colorSim(A, B) {
   if (!A.length || !B.length) return 0;
-  const rgb = s => s.match(/\d+/g).map(Number);
   let t = 0;
   A.forEach(a => {
     const av = rgb(a);
@@ -360,10 +401,39 @@ function colorSim(A, B) {
 }
 
 function dedup(colors, thresh=36) {
-  const rgb = s => s.match(/\d+/g).map(Number);
   const out = [];
   colors.forEach(c => { if (!out.some(x=>Math.sqrt(dist2(rgb(c),rgb(x)))<thresh)) out.push(c); });
   return out;
+}
+
+function diversifyColors(colors, limit, minDistance=78) {
+  if (colors.length <= 1) return colors.slice(0, limit);
+  const selected = [];
+  colors.forEach(color => {
+    if (selected.length >= limit) return;
+    if (!selected.some(existing => Math.sqrt(dist2(rgb(color), rgb(existing))) < minDistance)) {
+      selected.push(color);
+    }
+  });
+
+  while (selected.length < Math.min(limit, colors.length)) {
+    let bestColor = null;
+    let bestScore = -1;
+    colors.forEach(color => {
+      if (selected.includes(color)) return;
+      const score = selected.length
+        ? Math.min(...selected.map(existing => Math.sqrt(dist2(rgb(color), rgb(existing)))))
+        : 1e9;
+      if (score > bestScore) {
+        bestScore = score;
+        bestColor = color;
+      }
+    });
+    if (!bestColor) break;
+    selected.push(bestColor);
+  }
+
+  return selected;
 }
 
 function isRenderableSkin(skin) {
@@ -525,7 +595,7 @@ async function selectIcon(id) {
   document.getElementById('sel-sub').textContent = 'Extracting colors...';
   document.getElementById('icon-swatches').innerHTML = '';
 
-  const colors = await getPal(ICON_URL(id));
+  const colors = await getPal(ICON_URL(id), PALETTE_SIZE, 'icon');
   pals.icon = colors;
 
   const sw = document.getElementById('icon-swatches');
