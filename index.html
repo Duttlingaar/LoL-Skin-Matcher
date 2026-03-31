@@ -48,11 +48,13 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 .srch-wrap input::placeholder{color:var(--text3)}
 .sort-sel{background:var(--bg-card);border:1px solid var(--border);color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:12px;padding:8px 12px;border-radius:4px;outline:none;cursor:pointer}
 
-/* icon grid — fixed column counts keep last row full-width */
-#igrid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:14px}
-@media(min-width:480px){#igrid{grid-template-columns:repeat(12,1fr);gap:7px}}
-@media(min-width:768px){#igrid{grid-template-columns:repeat(16,1fr);gap:8px}}
-@media(min-width:1200px){#igrid{grid-template-columns:repeat(20,1fr)}}
+/* icon grid — fewer columns on small screens keeps icons readable */
+#igrid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:520px){#igrid{grid-template-columns:repeat(6,1fr);gap:10px}}
+@media(min-width:768px){#igrid{grid-template-columns:repeat(8,1fr);gap:9px}}
+@media(min-width:1024px){#igrid{grid-template-columns:repeat(12,1fr);gap:8px}}
+@media(min-width:1400px){#igrid{grid-template-columns:repeat(16,1fr);gap:8px}}
+@media(min-width:1700px){#igrid{grid-template-columns:repeat(20,1fr)}}
 
 .iitem{aspect-ratio:1;cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid transparent;transition:border-color .15s,transform .12s;background:var(--bg-card)}
 .iitem:hover{border-color:var(--gold-dim);transform:scale(1.07);z-index:2}
@@ -82,17 +84,14 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 .swatch{width:22px;height:22px;border-radius:3px;border:1px solid rgba(255,255,255,.08);transition:transform .12s;cursor:default}
 .swatch:hover{transform:scale(1.18)}
 
-/* horizontal cosmetic rows */
+/* cosmetic rows */
 .cosm-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
-.crow{display:flex;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:7px 12px}
+.crow{display:flex;align-items:flex-start;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
 .crow-label{display:flex;align-items:center;gap:7px;width:110px;flex-shrink:0}
 @media(min-width:600px){.crow-label{width:130px}}
 .crow-thumb{width:30px;height:30px;border-radius:4px;border:1px solid var(--border-hi);background:var(--bg);flex-shrink:0;object-fit:cover}
 .crow-title{font-family:'Cinzel',serif;font-size:10px;font-weight:600;color:var(--gold);letter-spacing:.08em}
-.crow-track{display:flex;gap:5px;overflow-x:auto;flex:1;padding-bottom:3px;align-items:center;scrollbar-width:thin;scrollbar-color:var(--border-hi) transparent}
-.crow-track::-webkit-scrollbar{height:3px}
-.crow-track::-webkit-scrollbar-track{background:transparent}
-.crow-track::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px}
+.crow-track{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:6px;flex:1;align-items:start}
 
 /* cosmetic mini items */
 .mi{cursor:pointer;border-radius:5px;overflow:hidden;border:2px solid transparent;transition:border-color .15s,transform .12s;background:var(--bg);flex-shrink:0;width:42px;height:42px}
@@ -103,6 +102,12 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 .mi.crystal-item img{object-fit:contain}
 .desel{display:flex;align-items:center;justify-content:center;background:var(--bg-hover);font-size:13px;color:var(--text3)}
 .desel:hover{border-color:rgba(220,80,80,.4)!important;color:#d06060}
+@media(max-width:767px){
+  .crow{flex-direction:column;align-items:stretch}
+  .crow-label{width:auto}
+  .crow-track{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px}
+  .mi{width:48px;height:48px}
+}
 
 /* combined palette bar */
 .palbar{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:11px 15px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -126,6 +131,11 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:11px}
 @media(min-width:500px){.rgrid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr))}}
 @media(min-width:900px){.rgrid{grid-template-columns:repeat(auto-fill,minmax(192px,1fr))}}
+.rmore{display:flex;justify-content:center;margin-top:18px}
+#more-btn{font-family:'Cinzel',serif;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;background:transparent;border:1px solid var(--gold);color:var(--gold);padding:11px 36px;border-radius:4px;cursor:pointer;transition:background .2s,box-shadow .2s;overflow:hidden;position:relative}
+#more-btn:hover{background:rgba(200,155,60,.12);box-shadow:0 0 22px var(--gold-glow)}
+#more-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(200,155,60,.12) 50%,transparent 70%);transform:translateX(-100%);transition:transform .5s}
+#more-btn:hover::after{transform:translateX(100%)}
 
 .scard{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s}
 .scard:hover{border-color:var(--border-hi);transform:translateY(-3px)}
@@ -139,7 +149,7 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 .sinfo{padding:9px 11px;border-top:1px solid var(--border)}
 .sn{font-family:'Cinzel',serif;font-size:10px;font-weight:600;color:var(--text);letter-spacing:.04em;margin-bottom:2px;line-height:1.3}
 .sc{font-size:10px;color:var(--text2);font-weight:300;margin-bottom:5px}
-.ssw{display:flex;gap:3px}
+.ssw{display:flex;gap:3px;flex-wrap:wrap}
 .ssw div{width:11px;height:11px;border-radius:2px;border:1px solid rgba(255,255,255,.07)}
 
 /* loading / empty states */
@@ -231,6 +241,7 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
   <div id="rsec">
     <div class="sh"><h2>Matching Skins</h2><div class="sh-line"></div><span class="sh-n" id="rcnt">–</span></div>
     <div class="rgrid" id="rgrid"><div class="msgb"><div class="spin"></div>Analyzing...</div></div>
+    <div class="rmore" id="rmore" style="display:none"><button id="more-btn">Load More</button></div>
   </div>
 
 </main>
@@ -261,11 +272,21 @@ const CRYSTALS = CRYSTAL_TIERS.map(t=>({
   url: `${CRYSTAL}/crystal_${t}.png`,
 }));
 
-const IPP = 100;
+const ICON_ROWS_PER_PAGE = 6;
 const TOP = 30;
+const PALETTE_SIZE = 10;
+const ICON_DISPLAY_SWATCH_LIMIT = 5;
+const ICON_MATCH_LIMIT = 5;
+const BORDER_MATCH_LIMIT = 5;
+const CRYSTAL_MATCH_LIMIT = 4;
+const RESULT_SWATCH_LIMIT = 10;
+const LOAD_MORE_ROWS = 2;
 
 let iconIds = [], filtIds = [], iPage = 0;
 let skinDB = [], skinsOK = false;
+let iconCols = 1;
+let resultCols = 1, resultRowsShown = 0;
+let scoredResults = [];
 const palCache = {};
 const sel  = {icon:null, border:null, crystal:null};
 const pals = {icon:[], border:[], crystal:[]};
@@ -275,8 +296,9 @@ const ctx = cvs.getContext('2d', {willReadFrequently:true});
 
 // --- Color extraction ---
 
-async function getPal(url, k=5) {
-  if (palCache[url]) return palCache[url];
+async function getPal(url, k=PALETTE_SIZE) {
+  const key = `${url}|${k}`;
+  if (palCache[key]) return palCache[key];
   return new Promise(res => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -284,7 +306,11 @@ async function getPal(url, k=5) {
       cvs.width = 64; cvs.height = 64;
       ctx.clearRect(0,0,64,64);
       ctx.drawImage(img,0,0,64,64);
-      try { const p = kMeans(ctx.getImageData(0,0,64,64).data, k); palCache[url]=p; res(p); }
+      try {
+        const p = dedup(kMeans(ctx.getImageData(0,0,64,64).data, k), 24);
+        palCache[key]=p;
+        res(p);
+      }
       catch(e) { res([]); }
     };
     img.onerror = () => res([]);
@@ -395,10 +421,34 @@ async function loadSkins() {
 
 // --- Icon grid ---
 
+function getGridColumns(id) {
+  const grid = document.getElementById(id);
+  const style = getComputedStyle(grid);
+  const cols = style.gridTemplateColumns.split(' ').filter(Boolean).length;
+  return Math.max(cols || 1, 1);
+}
+
+function getIconsPerPage() {
+  iconCols = getGridColumns('igrid');
+  return iconCols * ICON_ROWS_PER_PAGE;
+}
+
+// The comparison palette intentionally uses different limits per source.
+function getCombinedPalette() {
+  return dedup([
+    ...pals.icon.slice(0, ICON_MATCH_LIMIT),
+    ...pals.border.slice(0, BORDER_MATCH_LIMIT),
+    ...pals.crystal.slice(0, CRYSTAL_MATCH_LIMIT)
+  ]);
+}
+
 function renderIcons() {
   const g = document.getElementById('igrid');
   g.innerHTML = '';
-  filtIds.slice(iPage*IPP, (iPage+1)*IPP).forEach(id => {
+  const perPage = getIconsPerPage();
+  const total = Math.ceil(filtIds.length / perPage);
+  if (iPage > Math.max(total - 1, 0)) iPage = Math.max(total - 1, 0);
+  filtIds.slice(iPage*perPage, (iPage+1)*perPage).forEach(id => {
     const item = document.createElement('div');
     item.className = 'iitem' + (sel.icon===id ? ' sel' : '');
     item.dataset.id = id;
@@ -409,14 +459,14 @@ function renderIcons() {
     img.onload = () => img.classList.remove('ld');
     img.onerror = () => { item.style.opacity='.2'; };
     item.appendChild(img);
-    item.addEventListener('click', () => selectIcon(id, img));
+    item.addEventListener('click', () => selectIcon(id));
     g.appendChild(item);
   });
   renderPagination();
 }
 
 function renderPagination() {
-  const total = Math.ceil(filtIds.length / IPP);
+  const total = Math.ceil(filtIds.length / getIconsPerPage());
   const p = document.getElementById('ipag');
   if (total <= 1) { p.innerHTML=''; return; }
   p.innerHTML = '';
@@ -462,7 +512,7 @@ function scrollTop() { window.scrollTo({top:0, behavior:'smooth'}); }
 
 // --- Icon selection ---
 
-async function selectIcon(id, imgEl) {
+async function selectIcon(id) {
   sel.icon = id;
   document.querySelectorAll('.iitem').forEach(el => el.classList.toggle('sel', Number(el.dataset.id)===id));
 
@@ -479,8 +529,8 @@ async function selectIcon(id, imgEl) {
   pals.icon = colors;
 
   const sw = document.getElementById('icon-swatches');
-  colors.forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
-  document.getElementById('sel-sub').textContent = `${colors.length} colors extracted`;
+  colors.slice(0, ICON_DISPLAY_SWATCH_LIMIT).forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
+  document.getElementById('sel-sub').textContent = `${Math.min(colors.length, ICON_DISPLAY_SWATCH_LIMIT)} colors extracted`;
   document.getElementById('abtn').disabled = false;
   updateCombinedPalette();
 }
@@ -556,17 +606,85 @@ function deselect(type) {
 }
 
 function updateCombinedPalette() {
-  const all = [...pals.icon, ...pals.border, ...pals.crystal];
+  const all = getCombinedPalette();
   const sw  = document.getElementById('comb-sw');
   sw.innerHTML = '';
   if (!pals.border.length && !pals.crystal.length) {
     sw.innerHTML = '<span class="pe">Add a border or crystal to expand the palette</span>';
   } else {
-    dedup(all).forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
+    all.forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
   }
   document.getElementById('src-icon').classList.toggle('on', !!pals.icon.length);
   document.getElementById('src-bd').classList.toggle('on',   !!pals.border.length);
   document.getElementById('src-cr').classList.toggle('on',   !!pals.crystal.length);
+}
+
+function getResultColumns() { return getGridColumns('rgrid'); }
+
+// Show only full rows at first; the final partial row is revealed via Load More.
+function computeVisibleResultCount(total) {
+  if (!total) return 0;
+  const fullRowsWithinTop = Math.floor(TOP / resultCols);
+  const initialRows = Math.max(fullRowsWithinTop, 1);
+  if (!resultRowsShown) resultRowsShown = initialRows;
+  let count = resultRowsShown * resultCols;
+  if (count >= total) return total;
+  const remaining = total - count;
+  if (remaining < resultCols) return total;
+  return count;
+}
+
+function updateLoadMore(total, shown) {
+  const wrap = document.getElementById('rmore');
+  const btn = document.getElementById('more-btn');
+  if (shown >= total) {
+    wrap.style.display = 'none';
+    return;
+  }
+  const remaining = total - shown;
+  btn.textContent = remaining < resultCols ? `Load Last ${remaining}` : 'Load More';
+  wrap.style.display = 'flex';
+}
+
+function renderResults() {
+  const g = document.getElementById('rgrid');
+  if (!scoredResults.length) {
+    g.innerHTML = '<div class="msgb">No results found.</div>';
+    document.getElementById('rmore').style.display = 'none';
+    document.getElementById('rcnt').textContent = '0 Treffer';
+    return;
+  }
+
+  resultCols = getResultColumns();
+  const shownCount = computeVisibleResultCount(scoredResults.length);
+  const visible = scoredResults.slice(0, shownCount);
+  document.getElementById('rcnt').textContent = `${shownCount} von ${scoredResults.length}`;
+  g.innerHTML = '';
+
+  visible.forEach(item => {
+    const pct   = Math.round((item.score / Math.max(scoredResults[0].score, .001)) * 100);
+    const card  = document.createElement('div'); card.className='scard';
+    const iw    = document.createElement('div'); iw.className='simgw';
+    const img   = document.createElement('img'); img.className='ld';
+    img.src=item.url; img.alt=item.skinName;
+    img.onload  = () => img.classList.remove('ld');
+    img.onerror = () => { iw.style.background='#111520'; };
+    const bar  = document.createElement('div'); bar.className='mbar';
+    const fill = document.createElement('div'); fill.className='mfill'; fill.style.width='0';
+    bar.appendChild(fill); setTimeout(()=>fill.style.width=pct+'%', 80);
+    const badge = document.createElement('div'); badge.className='mbadge'; badge.textContent=pct+'%';
+    iw.append(img, bar, badge);
+    const si  = document.createElement('div'); si.className='sinfo';
+    const sn  = document.createElement('div'); sn.className='sn'; sn.textContent=item.skinName;
+    const sc  = document.createElement('div'); sc.className='sc'; sc.textContent=item.displayName;
+    const ssw = document.createElement('div'); ssw.className='ssw';
+    item.palette.slice(0, RESULT_SWATCH_LIMIT).forEach(c => { const s=document.createElement('div'); s.style.background=c; ssw.appendChild(s); });
+    si.append(sn, sc, ssw);
+    card.append(iw, si);
+    g.appendChild(card);
+  });
+
+  updateLoadMore(scoredResults.length, shownCount);
 }
 
 // --- Search / Sort ---
@@ -590,14 +708,17 @@ document.getElementById('isort').addEventListener('change', e => {
 // --- Analyze ---
 
 document.getElementById('abtn').addEventListener('click', async () => {
-  const combined = [...pals.icon, ...pals.border, ...pals.crystal];
+  const combined = getCombinedPalette();
   if (!combined.length) return;
+  // Match each splash with the same number of colors currently active in the combined palette.
+  const comparisonPaletteSize = combined.length;
 
   const rs = document.getElementById('rsec');
   rs.style.display = 'block';
   rs.scrollIntoView({behavior:'smooth', block:'start'});
   document.getElementById('rgrid').innerHTML = `<div class="msgb"><div class="spin"></div>${skinsOK ? `Analyzing ${skinDB.length} skins...` : 'Loading skin data...'}</div>`;
   document.getElementById('rcnt').textContent = '–';
+  document.getElementById('rmore').style.display = 'none';
   document.getElementById('abtn').disabled = true;
 
   if (!skinsOK) await new Promise(res => { const check=()=>skinsOK?res():setTimeout(check,400); check(); });
@@ -606,43 +727,33 @@ document.getElementById('abtn').addEventListener('click', async () => {
   const BATCH = 20;
   for (let i=0; i<skinDB.length; i+=BATCH) {
     await Promise.all(skinDB.slice(i,i+BATCH).map(async s => {
-      const pal = await getPal(s.url);
+      const pal = await getPal(s.url, comparisonPaletteSize);
       if (pal.length) scored.push({...s, score:colorSim(combined,pal), palette:pal});
     }));
     if (i%200===0 && i>0) setStatus(`Comparing... ${i}/${skinDB.length}`);
   }
 
   scored.sort((a,b) => b.score-a.score);
-  const top = scored.slice(0, TOP);
-  document.getElementById('rcnt').textContent = `Top ${top.length} of ${scored.length}`;
   setStatus(`${skinDB.length} skins analyzed`);
   document.getElementById('abtn').disabled = false;
- 
-  const g = document.getElementById('rgrid');
-  if (!top.length) { g.innerHTML='<div class="msgb">No results found.</div>'; return; }
-  g.innerHTML = '';
-  top.forEach(item => {
-    const pct   = Math.round((item.score / Math.max(scored[0].score, .001)) * 100);
-    const card  = document.createElement('div'); card.className='scard';
-    const iw    = document.createElement('div'); iw.className='simgw';
-    const img   = document.createElement('img'); img.className='ld';
-    img.src=item.url; img.alt=item.skinName;
-    img.onload  = () => img.classList.remove('ld');
-    img.onerror = () => { iw.style.background='#111520'; };
-    const bar  = document.createElement('div'); bar.className='mbar';
-    const fill = document.createElement('div'); fill.className='mfill'; fill.style.width='0';
-    bar.appendChild(fill); setTimeout(()=>fill.style.width=pct+'%', 80);
-    const badge = document.createElement('div'); badge.className='mbadge'; badge.textContent=pct+'%';
-    iw.append(img, bar, badge);
-    const si  = document.createElement('div'); si.className='sinfo';
-    const sn  = document.createElement('div'); sn.className='sn'; sn.textContent=item.skinName;
-    const sc  = document.createElement('div'); sc.className='sc'; sc.textContent=item.displayName;
-    const ssw = document.createElement('div'); ssw.className='ssw';
-    item.palette.slice(0,5).forEach(c => { const s=document.createElement('div'); s.style.background=c; ssw.appendChild(s); });
-    si.append(sn, sc, ssw);
-    card.append(iw, si);
-    g.appendChild(card);
-  });
+  scoredResults = scored;
+  resultRowsShown = 0;
+  renderResults();
+});
+
+document.getElementById('more-btn').addEventListener('click', () => {
+  resultRowsShown += LOAD_MORE_ROWS;
+  renderResults();
+});
+
+window.addEventListener('resize', () => {
+  const cols = getGridColumns('igrid');
+  if (cols !== iconCols) renderIcons();
+  if (!scoredResults.length) return;
+  const resultGridCols = getResultColumns();
+  if (resultGridCols === resultCols) return;
+  resultCols = resultGridCols;
+  renderResults();
 });
 
 function setStatus(t) { document.getElementById('stxt').textContent = t; }
