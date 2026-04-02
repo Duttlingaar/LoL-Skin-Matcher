@@ -150,10 +150,7 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 .mfill{height:100%;background:linear-gradient(to right,var(--gold-dim),var(--gold));transition:width .5s ease}
 .mbadge{position:absolute;top:7px;right:7px;background:rgba(8,10,14,.88);border:1px solid var(--border);border-radius:3px;padding:2px 6px;font-size:10px;font-weight:600;color:var(--gold);backdrop-filter:blur(4px)}
 .sinfo{padding:9px 11px;border-top:1px solid var(--border)}
-.sn{font-family:'Cinzel',serif;font-size:10px;font-weight:600;color:var(--text);letter-spacing:.04em;margin-bottom:2px;line-height:1.3}
-.sc{font-size:10px;color:var(--text2);font-weight:300;margin-bottom:5px}
-.ssw{display:flex;gap:3px;flex-wrap:wrap}
-.ssw div{width:11px;height:11px;border-radius:2px;border:1px solid rgba(255,255,255,.07)}
+.sn{font-family:'Cinzel',serif;font-size:10px;font-weight:600;color:var(--text);letter-spacing:.04em;line-height:1.3}
 
 /* loading / empty states */
 .msgb{grid-column:1/-1;text-align:center;padding:44px 0;color:var(--text2);font-size:13px;font-weight:300;letter-spacing:.06em}
@@ -260,6 +257,7 @@ const ICON_META_URL = `${CD}/v1/summoner-icons.json`;
 
 const ICON_URL = id    => `${CD}/v1/profile-icons/${id}.jpg`;
 const SPLASH   = (c,n) => `${DD}/img/champion/splash/${c}_${n}.jpg`;
+const LOADING  = (c,n) => `${DD}/img/champion/loading/${c}_${n}.jpg`;
 
 const WINGS   = `${FE}/ranked-emblem/wings`;
 const THEMED  = `${FE}/uikit/themed-borders`;
@@ -454,16 +452,36 @@ function dist2(a, b) { return (a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2; }
 
 function rgb(s) { return s.match(/\d+/g).map(Number); }
 
+function colorWeight(color) {
+  const [r,g,b] = rgb(color).map(v => v / 255);
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  const sat = max === 0 ? 0 : (max - min) / max;
+  const light = (max + min) / 2;
+  const contrastBoost = Math.abs(light - 0.5) * 1.4;
+  return 1 + sat * 0.9 + contrastBoost;
+}
+
+function directionalColorSim(source, target) {
+  if (!source.length || !target.length) return 0;
+  let total = 0;
+  let weightSum = 0;
+  source.forEach(color => {
+    const colorRgb = rgb(color);
+    let best = 1e9;
+    target.forEach(candidate => {
+      const d = Math.sqrt(dist2(colorRgb, rgb(candidate)));
+      if (d < best) best = d;
+    });
+    const weight = colorWeight(color);
+    total += (1 - best/441) * weight;
+    weightSum += weight;
+  });
+  return weightSum ? total / weightSum : 0;
+}
+
 function colorSim(A, B) {
   if (!A.length || !B.length) return 0;
-  let t = 0;
-  A.forEach(a => {
-    const av = rgb(a);
-    let best = 1e9;
-    B.forEach(b => { const d = Math.sqrt(dist2(av,rgb(b))); if (d<best) best=d; });
-    t += 1 - best/441;
-  });
-  return t / A.length;
+  return directionalColorSim(A, B) * .7 + directionalColorSim(B, A) * .3;
 }
 
 function dedup(colors, thresh=36) {
@@ -544,7 +562,8 @@ async function loadSkins() {
               displayName: cd.name,
               skinName: s.num === 0 ? `${cd.name} (Default)` : s.name,
               skinNum: s.num,
-              url: SPLASH(cd.id, s.num)
+              url: SPLASH(cd.id, s.num),
+              analysisUrl: LOADING(cd.id, s.num)
             });
           });
         } catch(e) {}
@@ -756,12 +775,12 @@ function renderBorders() {
   const thumb = document.getElementById('bd-thumb');
   thumb.src = sel.border !== null ? BORDERS[sel.border].url : `${THEMED}/theme-1-border.png`;
   thumb.style.opacity = sel.border !== null ? '1' : '.5';
-  if (sel.border !== null) g.appendChild(mkDesel(() => deselect('border')));
   BORDERS.forEach((b,i) => {
     const item = mkMiniItem(b.url, sel.border===i, () => pickCosmetic('border',i,b.url));
     item.title = b.n;
     g.appendChild(item);
   });
+  if (sel.border !== null) g.appendChild(mkDesel(() => deselect('border')));
 }
 
 function renderCrystals() {
@@ -770,13 +789,13 @@ function renderCrystals() {
   const thumb = document.getElementById('cr-thumb');
   thumb.src = sel.crystal !== null ? CRYSTALS[sel.crystal].url : CRYSTALS[5].url;
   thumb.style.opacity = sel.crystal !== null ? '1' : '.5';
-  if (sel.crystal !== null) g.appendChild(mkDesel(() => deselect('crystal')));
   CRYSTALS.forEach((c,i) => {
     const item = mkMiniItem(c.url, sel.crystal===i, () => pickCosmetic('crystal',i,c.url));
     item.classList.add('crystal-item');
     item.title = c.n;
     g.appendChild(item);
   });
+  if (sel.crystal !== null) g.appendChild(mkDesel(() => deselect('crystal')));
 }
 
 function mkMiniItem(url, active, cb) {
@@ -885,10 +904,7 @@ function renderResults() {
     iw.append(img, bar, badge);
     const si  = document.createElement('div'); si.className='sinfo';
     const sn  = document.createElement('div'); sn.className='sn'; sn.textContent=item.skinName;
-    const sc  = document.createElement('div'); sc.className='sc'; sc.textContent=item.displayName;
-    const ssw = document.createElement('div'); ssw.className='ssw';
-    item.palette.slice(0, RESULT_SWATCH_LIMIT).forEach(c => { const s=document.createElement('div'); s.style.background=c; ssw.appendChild(s); });
-    si.append(sn, sc, ssw);
+    si.append(sn);
     card.append(iw, si);
     g.appendChild(card);
   });
@@ -929,7 +945,7 @@ document.getElementById('abtn').addEventListener('click', async () => {
   for (let i=0; i<skinDB.length; i+=ANALYZE_BATCH_SIZE) {
     if (token !== analyzeToken) return;
     await Promise.all(skinDB.slice(i,i+ANALYZE_BATCH_SIZE).map(async s => {
-      const pal = await getCachedPal(s.url, comparisonPaletteSize);
+      const pal = await getCachedPal(s.analysisUrl || s.url, comparisonPaletteSize);
       if (pal?.length) scored.push({...s, score:colorSim(combined,pal), palette:pal});
       else pending.push(s);
     }));
@@ -951,7 +967,7 @@ document.getElementById('abtn').addEventListener('click', async () => {
   for (let i=0; i<pending.length; i+=ANALYZE_BATCH_SIZE) {
     if (token !== analyzeToken) return;
     await Promise.all(pending.slice(i,i+ANALYZE_BATCH_SIZE).map(async s => {
-      const pal = await getPal(s.url, comparisonPaletteSize);
+      const pal = await getPal(s.analysisUrl || s.url, comparisonPaletteSize);
       if (pal.length) scored.push({...s, score:colorSim(combined,pal), palette:pal});
     }));
     if (i%100===0 || i+ANALYZE_BATCH_SIZE>=pending.length) {
