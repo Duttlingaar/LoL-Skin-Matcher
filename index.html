@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LoL Skin Matcher</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --gold:#C89B3C;--gold-dim:#7A5C1E;--gold-glow:rgba(200,155,60,.35);
@@ -64,7 +65,7 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 
 /* pagination */
 .pag{display:flex;justify-content:center;align-items:center;gap:6px;margin-bottom:28px;flex-wrap:wrap}
-.pb{background:var(--bg-card);border:1px solid var(--border);color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:500;padding:5px 11px;border-radius:3px;cursor:pointer;transition:all .15s}
+.pb{background:var(--bg-card);border:1px solid var(--border);color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:400;padding:5px 11px;border-radius:3px;cursor:pointer;transition:all .15s}
 .pb:hover,.pb.on{border-color:var(--gold);color:var(--gold);background:rgba(200,155,60,.08)}
 .pb:disabled{opacity:.3;cursor:not-allowed}
 
@@ -254,6 +255,7 @@ const DD  = 'https://ddragon.leagueoflegends.com/cdn';
 const CD  = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default';
 const FE  = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images';
 const ICON_META_URL = `${CD}/v1/summoner-icons.json`;
+const CHAMPION_FULL_URL = `${DD}/${VER}/data/en_US/championFull.json`;
 
 const ICON_URL = id    => `${CD}/v1/profile-icons/${id}.jpg`;
 const SPLASH   = (c,n) => `${DD}/img/champion/splash/${c}_${n}.jpg`;
@@ -283,9 +285,9 @@ const ICON_DISPLAY_SWATCH_LIMIT = 8;
 const ICON_MATCH_LIMIT = 8;
 const BORDER_MATCH_LIMIT = 5;
 const CRYSTAL_MATCH_LIMIT = 4;
-const RESULT_SWATCH_LIMIT = 10;
 const LOAD_MORE_ROWS = 2;
 const ANALYZE_BATCH_SIZE = 20;
+const INPUT_DEBOUNCE_MS = 120;
 const PALETTE_DB_NAME = 'skin-matcher-cache';
 const PALETTE_DB_VERSION = 1;
 const PALETTE_STORE = 'palettes';
@@ -298,6 +300,9 @@ let resultCols = 1, resultRowsShown = 0;
 let scoredResults = [];
 let paletteDBPromise = null;
 let analyzeToken = 0;
+let iconSearchTimer = 0;
+let cosmeticsRendered = false;
+let selectedIconEl = null;
 const palCache = {};
 const sel  = {icon:null, border:null, crystal:null};
 const pals = {icon:[], border:[], crystal:[]};
@@ -526,10 +531,16 @@ function isRenderableSkin(skin) {
 
 // --- Data loading ---
 
+async function loadJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
 async function init() {
   setStatus('Loading icons...');
   try {
-    const icons = await (await fetch(ICON_META_URL)).json();
+    const icons = await loadJson(ICON_META_URL);
     iconMeta = new Map(icons.map(icon => [Number(icon.id), icon]));
     iconIds = icons.map(icon => Number(icon.id));
     sortIcons(document.getElementById('isort').value);
@@ -537,8 +548,6 @@ async function init() {
     document.getElementById('icnt').textContent = `${iconIds.length} Icons`;
     setStatus(`${iconIds.length} icons loaded`);
     renderIcons();
-    renderBorders();
-    renderCrystals();
     loadSkins();
   } catch(e) { setStatus('Error loading icons'); }
 }
@@ -546,31 +555,15 @@ async function init() {
 async function loadSkins() {
   setStatus('Loading champions...');
   try {
-    skinDB = [];
-    const j = await (await fetch(`${DD}/${VER}/data/en_US/champion.json`)).json();
-    const names = Object.keys(j.data);
-    const BATCH = 10;
-    for (let i=0; i<names.length; i+=BATCH) {
-      await Promise.all(names.slice(i,i+BATCH).map(async name => {
-        try {
-          const cj = await (await fetch(`${DD}/${VER}/data/en_US/champion/${name}.json`)).json();
-          const cd = Object.values(cj.data)[0];
-          cd.skins.forEach(s => {
-            if (!isRenderableSkin(s)) return;
-            skinDB.push({
-              champName: cd.id,
-              displayName: cd.name,
-              skinName: s.num === 0 ? `${cd.name} (Default)` : s.name,
-              skinNum: s.num,
-              url: SPLASH(cd.id, s.num),
-              analysisUrl: LOADING(cd.id, s.num)
-            });
-          });
-        } catch(e) {}
-      }));
-      if ((i+BATCH)%50===0 || i+BATCH>=names.length)
-        setStatus(`Loading skins ${Math.min(i+BATCH,names.length)}/${names.length}...`);
-    }
+    const championData = await loadJson(CHAMPION_FULL_URL);
+    const champions = Object.values(championData.data || {});
+    skinDB = champions.flatMap(champion => champion.skins
+      .filter(isRenderableSkin)
+      .map(skin => ({
+        skinName: skin.num === 0 ? `${champion.name} (Default)` : skin.name,
+        url: SPLASH(champion.id, skin.num),
+        analysisUrl: LOADING(champion.id, skin.num)
+      })));
     skinsOK = true;
     setStatus(`${skinDB.length} skins · ${iconIds.length} icons ready`);
   } catch(e) { setStatus('Error loading skins'); }
@@ -664,6 +657,7 @@ function getCombinedPalette() {
 function renderIcons() {
   const g = document.getElementById('igrid');
   g.innerHTML = '';
+  const frag = document.createDocumentFragment();
   const perPage = getIconsPerPage();
   const total = Math.ceil(filtIds.length / perPage);
   if (iPage > Math.max(total - 1, 0)) iPage = Math.max(total - 1, 0);
@@ -675,12 +669,15 @@ function renderIcons() {
     img.className = 'ld';
     img.src = ICON_URL(id);
     img.alt = getIconName(id);
+    img.loading = 'lazy';
+    img.decoding = 'async';
     img.onload = () => img.classList.remove('ld');
     img.onerror = () => { item.style.opacity='.2'; };
     item.appendChild(img);
-    item.addEventListener('click', () => selectIcon(id));
-    g.appendChild(item);
+    frag.appendChild(item);
   });
+  g.appendChild(frag);
+  selectedIconEl = g.querySelector('.iitem.sel');
   renderPagination();
 }
 
@@ -734,11 +731,18 @@ function scrollTop() { window.scrollTo({top:0, behavior:'smooth'}); }
 async function selectIcon(id) {
   const meta = getIconMeta(id);
   sel.icon = id;
-  document.querySelectorAll('.iitem').forEach(el => el.classList.toggle('sel', Number(el.dataset.id)===id));
+  if (selectedIconEl && Number(selectedIconEl.dataset.id) !== id) selectedIconEl.classList.remove('sel');
+  selectedIconEl = document.querySelector(`.iitem[data-id="${id}"]`);
+  selectedIconEl?.classList.add('sel');
 
   const cs = document.getElementById('cosm-section');
   cs.style.display=''; cs.className=''; void cs.offsetWidth; cs.className='open';
   cs.scrollIntoView({behavior:'smooth', block:'start'});
+  if (!cosmeticsRendered) {
+    renderBorders();
+    renderCrystals();
+    cosmeticsRendered = true;
+  }
 
   document.getElementById('sel-img').src = ICON_URL(id);
   document.getElementById('sel-title').textContent = getIconName(id);
@@ -772,20 +776,23 @@ async function selectIcon(id) {
 function renderBorders() {
   const g = document.getElementById('bd-grid');
   g.innerHTML = '';
+  const frag = document.createDocumentFragment();
   const thumb = document.getElementById('bd-thumb');
   thumb.src = sel.border !== null ? BORDERS[sel.border].url : `${THEMED}/theme-1-border.png`;
   thumb.style.opacity = sel.border !== null ? '1' : '.5';
   BORDERS.forEach((b,i) => {
     const item = mkMiniItem(b.url, sel.border===i, () => pickCosmetic('border',i,b.url));
     item.title = b.n;
-    g.appendChild(item);
+    frag.appendChild(item);
   });
-  if (sel.border !== null) g.appendChild(mkDesel(() => deselect('border')));
+  if (sel.border !== null) frag.appendChild(mkDesel(() => deselect('border')));
+  g.appendChild(frag);
 }
 
 function renderCrystals() {
   const g = document.getElementById('cr-grid');
   g.innerHTML = '';
+  const frag = document.createDocumentFragment();
   const thumb = document.getElementById('cr-thumb');
   thumb.src = sel.crystal !== null ? CRYSTALS[sel.crystal].url : CRYSTALS[5].url;
   thumb.style.opacity = sel.crystal !== null ? '1' : '.5';
@@ -793,9 +800,10 @@ function renderCrystals() {
     const item = mkMiniItem(c.url, sel.crystal===i, () => pickCosmetic('crystal',i,c.url));
     item.classList.add('crystal-item');
     item.title = c.n;
-    g.appendChild(item);
+    frag.appendChild(item);
   });
-  if (sel.crystal !== null) g.appendChild(mkDesel(() => deselect('crystal')));
+  if (sel.crystal !== null) frag.appendChild(mkDesel(() => deselect('crystal')));
+  g.appendChild(frag);
 }
 
 function mkMiniItem(url, active, cb) {
@@ -805,6 +813,8 @@ function mkMiniItem(url, active, cb) {
   img.className = 'ld';
   img.src = url;
   img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
   img.onload  = () => img.classList.remove('ld');
   img.onerror = () => { d.style.opacity='.25'; };
   d.appendChild(img);
@@ -879,15 +889,16 @@ function renderResults() {
   if (!scoredResults.length) {
     g.innerHTML = '<div class="msgb">No results found.</div>';
     document.getElementById('rmore').style.display = 'none';
-    document.getElementById('rcnt').textContent = '0 Treffer';
+    document.getElementById('rcnt').textContent = '0 Matches';
     return;
   }
 
   resultCols = getResultColumns();
   const shownCount = computeVisibleResultCount(scoredResults.length);
   const visible = scoredResults.slice(0, shownCount);
-  document.getElementById('rcnt').textContent = `${shownCount} von ${scoredResults.length}`;
+  document.getElementById('rcnt').textContent = `${shownCount} of ${scoredResults.length}`;
   g.innerHTML = '';
+  const frag = document.createDocumentFragment();
 
   visible.forEach(item => {
     const pct   = Math.round((item.score / Math.max(scoredResults[0].score, .001)) * 100);
@@ -895,6 +906,8 @@ function renderResults() {
     const iw    = document.createElement('div'); iw.className='simgw';
     const img   = document.createElement('img'); img.className='ld';
     img.src=item.url; img.alt=item.skinName;
+    img.loading = 'lazy';
+    img.decoding = 'async';
     img.onload  = () => img.classList.remove('ld');
     img.onerror = () => { iw.style.background='#111520'; };
     const bar  = document.createElement('div'); bar.className='mbar';
@@ -906,19 +919,30 @@ function renderResults() {
     const sn  = document.createElement('div'); sn.className='sn'; sn.textContent=item.skinName;
     si.append(sn);
     card.append(iw, si);
-    g.appendChild(card);
+    frag.appendChild(card);
   });
 
+  g.appendChild(frag);
   updateLoadMore(scoredResults.length, shownCount);
 }
 
 // --- Search / Sort ---
 
-document.getElementById('isrch').addEventListener('input', e => applyIconFilter(e.target.value));
+document.getElementById('isrch').addEventListener('input', e => {
+  clearTimeout(iconSearchTimer);
+  const { value } = e.target;
+  iconSearchTimer = window.setTimeout(() => applyIconFilter(value), INPUT_DEBOUNCE_MS);
+});
 
 document.getElementById('isort').addEventListener('change', e => {
   sortIcons(e.target.value);
   applyIconFilter(document.getElementById('isrch').value);
+});
+
+document.getElementById('igrid').addEventListener('click', e => {
+  const item = e.target.closest('.iitem');
+  if (!item) return;
+  selectIcon(Number(item.dataset.id));
 });
 
 // --- Analyze ---
@@ -946,7 +970,7 @@ document.getElementById('abtn').addEventListener('click', async () => {
     if (token !== analyzeToken) return;
     await Promise.all(skinDB.slice(i,i+ANALYZE_BATCH_SIZE).map(async s => {
       const pal = await getCachedPal(s.analysisUrl || s.url, comparisonPaletteSize);
-      if (pal?.length) scored.push({...s, score:colorSim(combined,pal), palette:pal});
+      if (pal?.length) scored.push({...s, score:colorSim(combined,pal)});
       else pending.push(s);
     }));
     if (i%200===0 || i+ANALYZE_BATCH_SIZE>=skinDB.length)
@@ -968,7 +992,7 @@ document.getElementById('abtn').addEventListener('click', async () => {
     if (token !== analyzeToken) return;
     await Promise.all(pending.slice(i,i+ANALYZE_BATCH_SIZE).map(async s => {
       const pal = await getPal(s.analysisUrl || s.url, comparisonPaletteSize);
-      if (pal.length) scored.push({...s, score:colorSim(combined,pal), palette:pal});
+      if (pal.length) scored.push({...s, score:colorSim(combined,pal)});
     }));
     if (i%100===0 || i+ANALYZE_BATCH_SIZE>=pending.length) {
       scored.sort((a,b) => b.score-a.score);
