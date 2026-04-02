@@ -34,6 +34,8 @@ header{position:sticky;top:0;z-index:200;background:rgba(10,12,16,.96);backdrop-
 /* layout */
 main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14px 80px}
 @media(min-width:768px){main{padding:28px 24px 80px}}
+.legal{margin-top:30px;padding-top:18px;border-top:1px solid var(--border);font-size:11px;line-height:1.6;color:var(--text3)}
+.legal strong{color:var(--text2);font-weight:600}
 
 /* section heading */
 .sh{display:flex;align-items:center;gap:10px;margin-bottom:14px}
@@ -248,6 +250,10 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
     <div class="rgrid" id="rgrid"><div class="msgb"><div class="spin"></div>Analyzing...</div></div>
     <div class="rmore" id="rmore" style="display:none"><button id="more-btn">Load More</button></div>
   </div>
+
+  <p class="legal">
+    <strong>Disclaimer:</strong> LoL Skin Matcher isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
+  </p>
 
 </main>
 <script>
