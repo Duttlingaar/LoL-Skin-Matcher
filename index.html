@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LoL Skin Matcher</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
@@ -22,7 +23,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* header */
 header{position:sticky;top:0;z-index:200;background:rgba(10,12,16,.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
-.lgem{width:12px;height:12px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
+.logo-mark{width:30px;height:30px;display:block;flex-shrink:0;filter:drop-shadow(0 0 10px rgba(200,155,60,.2))}
 .logo h1{font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.12em}
 .logo sub{font-size:10px;color:var(--text2);letter-spacing:.04em}
 @media(max-width:400px){.logo sub{display:none}}
@@ -172,7 +173,7 @@ main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14p
 <canvas id="cvs"></canvas>
 <header>
   <div class="logo">
-    <div class="lgem"></div>
+    <img class="logo-mark" src="favicon.svg" alt="LoL Skin Matcher logo">
     <div><h1>Skin Matcher</h1><sub>Color Coordination</sub></div>
   </div>
   <div id="hst"><span class="dot"></span><span id="stxt">Loading...</span></div>
