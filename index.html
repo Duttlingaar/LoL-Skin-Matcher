@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoL Skin Matcher</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" sizes="any">
+<link rel="shortcut icon" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#C89B3C;--gold-dim:#7A5C1E;--gold-glow:rgba(200,155,60,.35);
+  --bg:#0A0C10;--bg-card:#14181F;--bg-hover:#1A2030;
+  --border:rgba(200,155,60,.18);--border-hi:rgba(200,155,60,.55);
+  --text:#E8DFC8;--text2:#8A7A5A;--text3:#4A4030;--teal:#1AADA0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 40% at 50% -10%,rgba(200,155,60,.07) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at 100% 100%,rgba(74,144,217,.04) 0%,transparent 50%);pointer-events:none;z-index:0}
+
+/* header */
+header{position:sticky;top:0;z-index:200;background:rgba(10,12,16,.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.logo-mark{width:30px;height:30px;display:block;flex-shrink:0;filter:drop-shadow(0 0 10px rgba(200,155,60,.2))}
+.logo h1{font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.12em}
+.logo sub{font-size:10px;color:var(--text2);letter-spacing:.04em}
+@media(max-width:400px){.logo sub{display:none}}
+#hst{font-size:11px;color:var(--text2);text-align:right;line-height:1.4;min-width:0}
+.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--teal);margin-right:5px;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* layout */
+main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px 14px 80px}
+@media(min-width:768px){main{padding:28px 24px 80px}}
+.legal{margin-top:30px;padding-top:18px;border-top:1px solid var(--border);font-size:11px;line-height:1.6;color:var(--text3)}
+.legal strong{color:var(--text2);font-weight:600}
+
+/* section heading */
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sh h2{font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:var(--gold);letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.sh-line{flex:1;height:1px;background:linear-gradient(to right,var(--border-hi),transparent)}
+.sh-n{font-size:10px;color:var(--text3);white-space:nowrap}
+
+/* icon search + sort controls */
+.controls{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.srch-wrap{position:relative;flex:1;min-width:160px;max-width:300px}
+.srch-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+.srch-wrap input{width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;padding:8px 10px 8px 32px;border-radius:4px;outline:none;transition:border-color .2s}
+.srch-wrap input:focus{border-color:var(--border-hi)}
+.srch-wrap input::placeholder{color:var(--text3)}
+.sort-sel{background:var(--bg-card);border:1px solid var(--border);color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:12px;padding:8px 12px;border-radius:4px;outline:none;cursor:pointer}
+
+/* icon grid — fewer columns on small screens keeps icons readable */
+#igrid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:520px){#igrid{grid-template-columns:repeat(6,1fr);gap:10px}}
+@media(min-width:768px){#igrid{grid-template-columns:repeat(8,1fr);gap:9px}}
+@media(min-width:1024px){#igrid{grid-template-columns:repeat(12,1fr);gap:8px}}
+@media(min-width:1400px){#igrid{grid-template-columns:repeat(16,1fr);gap:8px}}
+@media(min-width:1700px){#igrid{grid-template-columns:repeat(20,1fr)}}
+
+.iitem{aspect-ratio:1;cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid transparent;transition:border-color .15s,transform .12s;background:var(--bg-card)}
+.iitem:hover{border-color:var(--gold-dim);transform:scale(1.07);z-index:2}
+.iitem.sel{border-color:var(--gold);box-shadow:0 0 14px var(--gold-glow)}
+.iitem img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .25s}
+.iitem img.ld{opacity:0}
+
+/* pagination */
+.pag{display:flex;justify-content:center;align-items:center;gap:6px;margin-bottom:28px;flex-wrap:wrap}
+.pb{background:var(--bg-card);border:1px solid var(--border);color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:400;padding:5px 11px;border-radius:3px;cursor:pointer;transition:all .15s}
+.pb:hover,.pb.on{border-color:var(--gold);color:var(--gold);background:rgba(200,155,60,.08)}
+.pb:disabled{opacity:.3;cursor:not-allowed}
+
+/* cosmetics section — hidden until icon is selected */
+#cosm-section{display:none}
+#cosm-section.open{display:block;animation:fup .35s ease}
+@keyframes fup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* selected icon info bar */
+.sel-bar{display:flex;align-items:center;gap:14px;padding:13px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;flex-wrap:wrap}
+.sel-icon-img{width:48px;height:48px;border-radius:6px;border:2px solid var(--gold);object-fit:cover;flex-shrink:0}
+.sel-icon-info{flex:1;min-width:100px}
+.sel-icon-info h3{font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.06em;margin-bottom:2px}
+.sel-icon-info p{font-size:12px;color:var(--text2);font-weight:300}
+.sel-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sel-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;background:var(--bg-hover);border:1px solid var(--border);font-size:10px;color:var(--text2);line-height:1.2}
+.sel-sub em{color:var(--text3);font-style:normal}
+.sel-palette{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.sel-pal-label{font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-right:2px}
+.swatch{width:22px;height:22px;border-radius:3px;border:1px solid rgba(255,255,255,.08);transition:transform .12s;cursor:default}
+.swatch:hover{transform:scale(1.18)}
+
+/* cosmetic rows */
+.cosm-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.crow{display:flex;align-items:flex-start;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.crow-label{display:flex;align-items:center;gap:7px;width:110px;flex-shrink:0}
+@media(min-width:600px){.crow-label{width:130px}}
+.crow-thumb{width:30px;height:30px;border-radius:4px;border:1px solid var(--border-hi);background:var(--bg);flex-shrink:0;object-fit:cover}
+.crow-title{font-family:'Cinzel',serif;font-size:10px;font-weight:600;color:var(--gold);letter-spacing:.08em}
+.crow-track{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:6px;flex:1;align-items:start}
+
+/* cosmetic mini items */
+.mi{cursor:pointer;border-radius:5px;overflow:hidden;border:2px solid transparent;transition:border-color .15s,transform .12s;background:var(--bg);flex-shrink:0;width:42px;height:42px}
+.mi:hover{border-color:var(--gold-dim);transform:scale(1.08);z-index:2}
+.mi.sel{border-color:var(--gold);box-shadow:0 0 10px var(--gold-glow)}
+.mi img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .25s}
+.mi img.ld{opacity:0}
+.mi.crystal-item img{object-fit:contain}
+.desel{display:flex;align-items:center;justify-content:center;background:var(--bg-hover);font-size:13px;color:var(--text3)}
+.desel:hover{border-color:rgba(220,80,80,.4)!important;color:#d06060}
+@media(max-width:767px){
+  .crow{flex-direction:column;align-items:stretch}
+  .crow-label{width:auto}
+  .crow-track{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px}
+  .mi{width:48px;height:48px}
+}
+
+/* combined palette bar */
+.palbar{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:11px 15px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pl{font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.psw{display:flex;gap:4px;flex-wrap:wrap;flex:1;min-height:22px;align-items:center}
+.pe{font-size:11px;color:var(--text3);font-style:italic;font-weight:300}
+.psrc{font-size:10px;color:var(--text3);display:flex;gap:5px;flex-wrap:wrap}
+.psrc span{background:var(--bg-hover);border:1px solid var(--border);border-radius:3px;padding:2px 6px;transition:all .2s}
+.psrc span.on{border-color:var(--border-hi);color:var(--text2)}
+
+/* analyze button */
+.abwrap{display:flex;justify-content:center;margin-bottom:24px}
+#abtn{font-family:'Cinzel',serif;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;background:transparent;border:1px solid var(--gold);color:var(--gold);padding:11px 36px;border-radius:4px;cursor:pointer;transition:background .2s,box-shadow .2s;overflow:hidden;position:relative}
+#abtn:hover:not(:disabled){background:rgba(200,155,60,.12);box-shadow:0 0 22px var(--gold-glow)}
+#abtn:disabled{opacity:.35;cursor:not-allowed}
+#abtn::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(200,155,60,.12) 50%,transparent 70%);transform:translateX(-100%);transition:transform .5s}
+#abtn:hover:not(:disabled)::after{transform:translateX(100%)}
+
+/* results section */
+#rsec{display:none}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:11px}
+@media(min-width:500px){.rgrid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr))}}
+@media(min-width:900px){.rgrid{grid-template-columns:repeat(auto-fill,minmax(192px,1fr))}}
+.rmore{display:flex;justify-content:center;margin-top:18px}
+#more-btn{font-family:'Cinzel',serif;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;background:transparent;border:1px solid var(--gold);color:var(--gold);padding:11px 36px;border-radius:4px;cursor:pointer;transition:background .2s,box-shadow .2s;overflow:hidden;position:relative}
+#more-btn:hover{background:rgba(200,155,60,.12);box-shadow:0 0 22px var(--gold-glow)}
+#more-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(200,155,60,.12) 50%,transparent 70%);transform:translateX(-100%);transition:transform .5s}
+#more-btn:hover::after{transform:translateX(100%)}
+
+.scard{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s}
+.scard:hover{border-color:var(--border-hi);transform:translateY(-3px)}
+.simgw{position:relative;aspect-ratio:16/9;overflow:hidden;background:#080A0E}
+.simgw img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;transition:transform .4s,opacity .3s}
+.simgw img.ld{opacity:0}
+.scard:hover .simgw img{transform:scale(1.04)}
+.mbar{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--bg)}
+.mfill{height:100%;background:linear-gradient(to right,var(--gold-dim),var(--gold));transition:width .5s ease}
+.mbadge{position:absolute;top:7px;right:7px;background:rgba(8,10,14,.88);border:1px solid var(--border);border-radius:3px;padding:2px 6px;font-size:10px;font-weight:600;color:var(--gold);backdrop-filter:blur(4px)}
+.sinfo{padding:9px 11px;border-top:1px solid var(--border)}
+.sn{font-family:'Cinzel',serif;font-size:10px;font-weight:600;color:var(--text);letter-spacing:.04em;line-height:1.3}
+
+/* loading / empty states */
+.msgb{grid-column:1/-1;text-align:center;padding:44px 0;color:var(--text2);font-size:13px;font-weight:300;letter-spacing:.06em}
+.spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* section divider ornament */
+.ornament{display:flex;align-items:center;gap:10px;margin:0 0 20px;color:var(--text3);font-size:10px;letter-spacing:.15em;text-transform:uppercase}
+.ornament::before,.ornament::after{content:'';flex:1;height:1px;background:var(--border)}
+
+#cvs{display:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px}
+</style>
+</head>
+<body>
+<canvas id="cvs"></canvas>
+<header>
+  <div class="logo">
+    <img class="logo-mark" src="favicon.svg" alt="LoL Skin Matcher logo">
+    <div><h1>Skin Matcher</h1><sub>Color Coordination</sub></div>
+  </div>
+  <div id="hst"><span class="dot"></span><span id="stxt">Loading...</span></div>
+</header>
+<main>
+
+  <div class="sh"><h2>Choose Profile Icon</h2><div class="sh-line"></div><span class="sh-n" id="icnt">–</span></div>
+  <div class="controls">
+    <div class="srch-wrap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="isrch" placeholder="Search icon name or ID..." autocomplete="off">
+    </div>
+    <select class="sort-sel" id="isort">
+      <option value="release_desc">Newest Release</option>
+      <option value="release_asc">Oldest Release</option>
+      <option value="name_asc">Name A-Z</option>
+      <option value="name_desc">Name Z-A</option>
+    </select>
+  </div>
+  <div id="igrid"></div>
+  <div class="pag" id="ipag"></div>
+
+  <div id="cosm-section">
+    <div class="ornament">Color Analysis</div>
+
+    <div class="sel-bar">
+      <img class="sel-icon-img" id="sel-img" src="" alt="">
+      <div class="sel-icon-info">
+        <h3 id="sel-title">Icon</h3>
+        <p id="sel-sub"></p>
+        <div class="sel-meta" id="sel-meta"></div>
+      </div>
+      <div class="sel-palette">
+        <span class="sel-pal-label">Palette</span>
+        <div id="icon-swatches" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+
+    <div class="sh" style="margin-bottom:10px"><h2>Customize Profile</h2><div class="sh-line"></div><span style="font-size:10px;color:var(--text3)">Optional</span></div>
+    <div class="cosm-rows">
+      <div class="crow">
+        <div class="crow-label">
+          <img class="crow-thumb" id="bd-thumb" src="" alt="">
+          <span class="crow-title">Border</span>
+        </div>
+        <div class="crow-track" id="bd-grid"></div>
+      </div>
+      <div class="crow">
+        <div class="crow-label">
+          <img class="crow-thumb" id="cr-thumb" src="" alt="">
+          <span class="crow-title">Crystal</span>
+        </div>
+        <div class="crow-track" id="cr-grid"></div>
+      </div>
+    </div>
+
+    <div class="palbar">
+      <span class="pl">Combined Palette</span>
+      <div class="psw" id="comb-sw"><span class="pe">Icon colors only</span></div>
+      <div class="psrc">
+        <span id="src-icon" class="on">Icon</span>
+        <span id="src-bd">Border</span>
+        <span id="src-cr">Crystal</span>
+      </div>
+    </div>
+
+    <div class="abwrap"><button id="abtn" disabled>Find Matching Skins</button></div>
+  </div>
+
+  <div id="rsec">
+    <div class="sh"><h2>Matching Skins</h2><div class="sh-line"></div><span class="sh-n" id="rcnt">–</span></div>
+    <div class="rgrid" id="rgrid"><div class="msgb"><div class="spin"></div>Analyzing...</div></div>
+    <div class="rmore" id="rmore" style="display:none"><button id="more-btn">Load More</button></div>
+  </div>
+
+  <p class="legal">
+    <strong>Disclaimer:</strong> LoL Skin Matcher isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
+  </p>
+
+</main>
+<script>
+const VER = '16.6.1';
+const DD  = 'https://ddragon.leagueoflegends.com/cdn';
+const CD  = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default';
+const FE  = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images';
+const ICON_META_URL = `${CD}/v1/summoner-icons.json`;
+const CHAMPION_FULL_URL = `${DD}/${VER}/data/en_US/championFull.json`;
+const SKIN_PALETTES_URL = 'skin-palettes.json';
+
+const ICON_URL = id    => `${CD}/v1/profile-icons/${id}.jpg`;
+const SPLASH   = (c,n) => `${DD}/img/champion/splash/${c}_${n}.jpg`;
+const LOADING  = (c,n) => `${DD}/img/champion/loading/${c}_${n}.jpg`;
+
+const WINGS   = `${FE}/ranked-emblem/wings`;
+const THEMED  = `${FE}/uikit/themed-borders`;
+const CRYSTAL = `${FE}/challenges-shared`;
+
+const RANKED_TIERS = ['iron','bronze','silver','gold','platinum','emerald','diamond','master','grandmaster','challenger'];
+const CRYSTAL_TIERS= ['iron','bronze','silver','gold','platinum','diamond','master','grandmaster','challenger'];
+
+const BORDERS = [
+  ...RANKED_TIERS.map(t=>({n:t[0].toUpperCase()+t.slice(1), url:`${WINGS}/wings_${t}.png`})),
+  ...Array.from({length:21},(_,i)=>({n:`Theme ${i+1}`, url:`${THEMED}/theme-${i+1}-border.png`})),
+];
+
+const CRYSTALS = CRYSTAL_TIERS.map(t=>({
+  n: t[0].toUpperCase()+t.slice(1),
+  url: `${CRYSTAL}/crystal_${t}.png`,
+}));
+
+const ICON_ROWS_PER_PAGE = 6;
+const TOP = 30;
+const PALETTE_SIZE = 14;
+const ICON_DISPLAY_SWATCH_LIMIT = 8;
+const ICON_MATCH_LIMIT = 8;
+const BORDER_MATCH_LIMIT = 5;
+const CRYSTAL_MATCH_LIMIT = 4;
+const LOAD_MORE_ROWS = 2;
+const ANALYZE_BATCH_SIZE = 20;
+const INPUT_DEBOUNCE_MS = 120;
+const PALETTE_DB_NAME = 'skin-matcher-cache';
+const PALETTE_DB_VERSION = 1;
+const PALETTE_STORE = 'palettes';
+
+let iconIds = [], filtIds = [], iPage = 0;
+let iconMeta = new Map();
+let skinDB = [], skinsOK = false;
+let iconCols = 1;
+let resultCols = 1, resultRowsShown = 0;
+let scoredResults = [];
+let paletteDBPromise = null;
+let analyzeToken = 0;
+let iconSearchTimer = 0;
+let cosmeticsRendered = false;
+let selectedIconEl = null;
+const palCache = {};
+const sel  = {icon:null, border:null, crystal:null};
+const pals = {icon:[], border:[], crystal:[]};
+
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d', {willReadFrequently:true});
+
+// --- Color extraction ---
+
+function openPaletteDB() {
+  if (!('indexedDB' in window)) return Promise.resolve(null);
+  if (paletteDBPromise) return paletteDBPromise;
+  paletteDBPromise = new Promise(resolve => {
+    const req = indexedDB.open(PALETTE_DB_NAME, PALETTE_DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PALETTE_STORE)) db.createObjectStore(PALETTE_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+  return paletteDBPromise;
+}
+
+async function readPaletteCache(key) {
+  const db = await openPaletteDB();
+  if (!db) return null;
+  return new Promise(resolve => {
+    const tx = db.transaction(PALETTE_STORE, 'readonly');
+    const req = tx.objectStore(PALETTE_STORE).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+async function writePaletteCache(key, palette) {
+  const db = await openPaletteDB();
+  if (!db) return;
+  return new Promise(resolve => {
+    const tx = db.transaction(PALETTE_STORE, 'readwrite');
+    tx.objectStore(PALETTE_STORE).put(palette, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
+
+async function getCachedPal(url, k=PALETTE_SIZE, mode='default') {
+  const key = `${url}|${k}|${mode}`;
+  if (palCache[key]) return await palCache[key];
+  const cached = await readPaletteCache(key);
+  if (cached) palCache[key] = cached;
+  return cached;
+}
+
+async function getPal(url, k=PALETTE_SIZE, mode='default') {
+  const key = `${url}|${k}|${mode}`;
+  if (palCache[key]) return palCache[key];
+  palCache[key] = (async () => {
+    const cached = await readPaletteCache(key);
+    if (cached) return cached;
+    return new Promise(res => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        cvs.width = 64; cvs.height = 64;
+        ctx.clearRect(0,0,64,64);
+        ctx.drawImage(img,0,0,64,64);
+        try {
+          let p = dedup(kMeans(ctx.getImageData(0,0,64,64).data, k, {
+            size: 64,
+            focusCenter: mode === 'icon'
+          }), 24);
+          if (mode === 'icon') p = diversifyColors(p, k, 78);
+          writePaletteCache(key, p);
+          res(p);
+        }
+        catch(e) { res([]); }
+      };
+      img.onerror = () => res([]);
+      img.src = url;
+    });
+  })();
+  return palCache[key].then(result => {
+    palCache[key] = result;
+    return result;
+  });
+}
+
+function kMeans(data, k, opts={}) {
+  const px = [];
+  const size = opts.size || 64;
+  const mid = (size - 1) / 2;
+  const maxDist = Math.sqrt(mid*mid + mid*mid) || 1;
+  for (let i=0; i<data.length; i+=4) {
+    if (data[i+3] <= 20) continue;
+    const idx = i / 4;
+    const x = idx % size;
+    const y = Math.floor(idx / size);
+    let weight = 1;
+    if (opts.focusCenter) {
+      const dx = x - mid;
+      const dy = y - mid;
+      const dist = Math.sqrt(dx*dx + dy*dy) / maxDist;
+      const centerBoost = 1 + Math.max(0, 1 - dist) * 2.2;
+      const innerBoost = (x > size*0.12 && x < size*0.88 && y > size*0.08 && y < size*0.92) ? 1.25 : 0.75;
+      weight = centerBoost * innerBoost;
+    }
+    px.push({rgb:[data[i],data[i+1],data[i+2]], weight});
+  }
+  if (!px.length) return [];
+  let C = [px[~~(Math.random()*px.length)].rgb];
+  while (C.length < k) {
+    const ds = px.map(p=>Math.min(...C.map(c=>dist2(p.rgb,c))) * p.weight);
+    const s = ds.reduce((a,b)=>a+b, 0);
+    let r = Math.random()*s;
+    for (let i=0; i<px.length; i++) { r-=ds[i]; if (r<=0) { C.push(px[i].rgb); break; } }
+  }
+  for (let it=0; it<12; it++) {
+    const cl = Array.from({length:k}, ()=>[]);
+    px.forEach(p => {
+      let b=0,bd=1e9;
+      C.forEach((c,j)=>{ const v=dist2(p.rgb,c); if(v<bd){bd=v;b=j;} });
+      cl[b].push(p);
+    });
+    let changed = false;
+    C = C.map((c,j) => {
+      if (!cl[j].length) return c;
+      const tw = cl[j].reduce((s,p)=>s+p.weight,0) || 1;
+      const n = [0,1,2].map(i=>Math.round(cl[j].reduce((s,p)=>s+p.rgb[i]*p.weight,0)/tw));
+      if (n.some((v,i)=>v!==c[i])) changed = true;
+      return n;
+    });
+    if (!changed) break;
+  }
+  const weights = Array.from({length:C.length}, () => 0);
+  px.forEach(p => {
+    let best = 0, bestDist = 1e9;
+    C.forEach((c,j) => {
+      const v = dist2(p.rgb,c);
+      if (v < bestDist) { bestDist = v; best = j; }
+    });
+    weights[best] += p.weight;
+  });
+
+  return C
+    .map((c, i) => ({color: c, weight: weights[i]}))
+    .sort((a, b) => b.weight - a.weight)
+    .map(({color}) => `rgb(${color[0]},${color[1]},${color[2]})`);
+}
+
+function dist2(a, b) { return (a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2; }
+
+function rgb(s) { return s.match(/\d+/g).map(Number); }
+
+function colorWeight(color) {
+  const [r,g,b] = rgb(color).map(v => v / 255);
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  const sat = max === 0 ? 0 : (max - min) / max;
+  const light = (max + min) / 2;
+  const contrastBoost = Math.abs(light - 0.5) * 1.4;
+  return 1 + sat * 0.9 + contrastBoost;
+}
+
+function directionalColorSim(source, target) {
+  if (!source.length || !target.length) return 0;
+  let total = 0;
+  let weightSum = 0;
+  source.forEach(color => {
+    const colorRgb = rgb(color);
+    let best = 1e9;
+    target.forEach(candidate => {
+      const d = Math.sqrt(dist2(colorRgb, rgb(candidate)));
+      if (d < best) best = d;
+    });
+    const weight = colorWeight(color);
+    total += (1 - best/441) * weight;
+    weightSum += weight;
+  });
+  return weightSum ? total / weightSum : 0;
+}
+
+function colorSim(A, B) {
+  if (!A.length || !B.length) return 0;
+  return directionalColorSim(A, B) * .7 + directionalColorSim(B, A) * .3;
+}
+
+function dedup(colors, thresh=36) {
+  const out = [];
+  colors.forEach(c => { if (!out.some(x=>Math.sqrt(dist2(rgb(c),rgb(x)))<thresh)) out.push(c); });
+  return out;
+}
+
+function diversifyColors(colors, limit, minDistance=78) {
+  if (colors.length <= 1) return colors.slice(0, limit);
+  const selected = [];
+  colors.forEach(color => {
+    if (selected.length >= limit) return;
+    if (!selected.some(existing => Math.sqrt(dist2(rgb(color), rgb(existing))) < minDistance)) {
+      selected.push(color);
+    }
+  });
+
+  while (selected.length < Math.min(limit, colors.length)) {
+    let bestColor = null;
+    let bestScore = -1;
+    colors.forEach(color => {
+      if (selected.includes(color)) return;
+      const score = selected.length
+        ? Math.min(...selected.map(existing => Math.sqrt(dist2(rgb(color), rgb(existing)))))
+        : 1e9;
+      if (score > bestScore) {
+        bestScore = score;
+        bestColor = color;
+      }
+    });
+    if (!bestColor) break;
+    selected.push(bestColor);
+  }
+
+  return selected;
+}
+
+function isRenderableSkin(skin) {
+  return !Object.prototype.hasOwnProperty.call(skin, 'parentSkin');
+}
+
+// --- Data loading ---
+
+async function loadJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+async function init() {
+  setStatus('Loading icons...');
+  try {
+    const icons = await loadJson(ICON_META_URL);
+    iconMeta = new Map(icons.map(icon => [Number(icon.id), icon]));
+    iconIds = icons.map(icon => Number(icon.id));
+    sortIcons(document.getElementById('isort').value);
+    filtIds = [...iconIds];
+    document.getElementById('icnt').textContent = `${iconIds.length} Icons`;
+    setStatus(`${iconIds.length} icons loaded`);
+    renderIcons();
+    loadSkins();
+  } catch(e) { setStatus('Error loading icons'); }
+}
+
+async function loadSkins() {
+  setStatus('Loading skin data...');
+  try {
+    const prebuilt = await loadJson(SKIN_PALETTES_URL);
+    // Prebuilt palettes: palette is array of [r,g,b] triples → convert to rgb() strings
+    skinDB = prebuilt.map(s => ({
+      skinName:    s.skinName,
+      url:         s.url,
+      analysisUrl: s.analysisUrl,
+      palette:     (s.palette || []).map(c => Array.isArray(c) ? `rgb(${c[0]},${c[1]},${c[2]})` : c),
+    }));
+    skinsOK = true;
+    setStatus(`${skinDB.length} skins · ${iconIds.length} icons ready`);
+    return;
+  } catch(_) {
+    // skin-palettes.json not available — fall back to live analysis
+  }
+
+  setStatus('Loading champions...');
+  try {
+    const championData = await loadJson(CHAMPION_FULL_URL);
+    const champions = Object.values(championData.data || {});
+    skinDB = champions.flatMap(champion => champion.skins
+      .filter(isRenderableSkin)
+      .map(skin => ({
+        skinName: skin.num === 0 ? `${champion.name} (Default)` : skin.name,
+        url: SPLASH(champion.id, skin.num),
+        analysisUrl: LOADING(champion.id, skin.num)
+      })));
+    skinsOK = true;
+    setStatus(`${skinDB.length} skins · ${iconIds.length} icons ready`);
+  } catch(e) { setStatus('Error loading skins'); }
+}
+
+// --- Icon grid ---
+
+function getIconMeta(id) {
+  return iconMeta.get(Number(id)) || null;
+}
+
+function getLocalizedField(entries, field) {
+  if (!Array.isArray(entries)) return '';
+  const riotEntry = entries.find(entry => entry?.region === 'riot' && entry?.[field]);
+  return riotEntry?.[field] || entries.find(entry => entry?.[field])?.[field] || '';
+}
+
+function getRarityLabel(value) {
+  const labels = {
+    0: 'Common',
+    1: 'Uncommon',
+    2: 'Rare',
+    3: 'Mythic'
+  };
+  return labels[value] || `Rarity ${value}`;
+}
+
+function getIconName(id) {
+  return getIconMeta(id)?.title || `Icon #${id}`;
+}
+
+function getIconReleaseYear(id) {
+  return getIconMeta(id)?.yearReleased || 0;
+}
+
+function getIconHowToGet(id) {
+  const meta = getIconMeta(id);
+  if (!meta) return 'Unknown';
+  const primaryDescription = getLocalizedField(meta.descriptions, 'description');
+  if (primaryDescription) return primaryDescription;
+  const rarity = getLocalizedField(meta.rarities, 'rarity');
+  if (rarity !== '') return `Availability: ${getRarityLabel(rarity)}`;
+  if (Array.isArray(meta.disabledRegions) && meta.disabledRegions.length)
+    return `Unavailable in: ${meta.disabledRegions.join(', ')}`;
+  return 'No acquisition info available';
+}
+
+function applyIconFilter(query) {
+  const q = query.trim().toLowerCase();
+  filtIds = q
+    ? iconIds.filter(id => String(id).includes(q) || getIconName(id).toLowerCase().includes(q))
+    : [...iconIds];
+  document.getElementById('icnt').textContent = filtIds.length===iconIds.length
+    ? `${iconIds.length} Icons`
+    : `${filtIds.length} / ${iconIds.length}`;
+  iPage = 0;
+  renderIcons();
+}
+
+function sortIcons(mode) {
+  const sorters = {
+    release_desc: (a, b) => getIconReleaseYear(b) - getIconReleaseYear(a) || b - a,
+    release_asc:  (a, b) => getIconReleaseYear(a) - getIconReleaseYear(b) || a - b,
+    name_asc:     (a, b) => getIconName(a).localeCompare(getIconName(b)) || a - b,
+    name_desc:    (a, b) => getIconName(b).localeCompare(getIconName(a)) || b - a
+  };
+  iconIds.sort(sorters[mode] || sorters.release_desc);
+}
+
+function getGridColumns(id) {
+  const grid = document.getElementById(id);
+  const style = getComputedStyle(grid);
+  const cols = style.gridTemplateColumns.split(' ').filter(Boolean).length;
+  return Math.max(cols || 1, 1);
+}
+
+function getIconsPerPage() {
+  iconCols = getGridColumns('igrid');
+  return iconCols * ICON_ROWS_PER_PAGE;
+}
+
+// The comparison palette intentionally uses different limits per source.
+function getCombinedPalette() {
+  return dedup([
+    ...pals.icon.slice(0, ICON_MATCH_LIMIT),
+    ...pals.border.slice(0, BORDER_MATCH_LIMIT),
+    ...pals.crystal.slice(0, CRYSTAL_MATCH_LIMIT)
+  ]);
+}
+
+function renderIcons() {
+  const g = document.getElementById('igrid');
+  g.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  const perPage = getIconsPerPage();
+  const total = Math.ceil(filtIds.length / perPage);
+  if (iPage > Math.max(total - 1, 0)) iPage = Math.max(total - 1, 0);
+  filtIds.slice(iPage*perPage, (iPage+1)*perPage).forEach(id => {
+    const item = document.createElement('div');
+    item.className = 'iitem' + (sel.icon===id ? ' sel' : '');
+    item.dataset.id = id;
+    const img = document.createElement('img');
+    img.className = 'ld';
+    img.src = ICON_URL(id);
+    img.alt = getIconName(id);
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.onload = () => img.classList.remove('ld');
+    img.onerror = () => { item.style.opacity='.2'; };
+    item.appendChild(img);
+    frag.appendChild(item);
+  });
+  g.appendChild(frag);
+  selectedIconEl = g.querySelector('.iitem.sel');
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filtIds.length / getIconsPerPage());
+  const p = document.getElementById('ipag');
+  if (total <= 1) { p.innerHTML=''; return; }
+  p.innerHTML = '';
+
+  p.appendChild(mkBtn('«', iPage===0, () => { iPage=0; renderIcons(); scrollTop(); }));
+  p.appendChild(mkBtn('‹', iPage===0, () => { iPage--;  renderIcons(); scrollTop(); }));
+
+  if (total <= 12) {
+    for (let i=0; i<total; i++) {
+      const b = mkBtn(i+1, false, () => { iPage=i; renderIcons(); scrollTop(); });
+      if (i===iPage) b.classList.add('on');
+      p.appendChild(b);
+    }
+  } else {
+    const show = new Set([0,1,total-2,total-1]);
+    for (let i=Math.max(0,iPage-2); i<=Math.min(total-1,iPage+2); i++) show.add(i);
+    let prev = -1;
+    [...show].sort((a,b)=>a-b).forEach(i => {
+      if (prev !== -1 && i > prev+1) {
+        const d = document.createElement('span');
+        d.textContent='…'; d.style.cssText='color:var(--text3);padding:0 4px;font-size:12px;align-self:center';
+        p.appendChild(d);
+      }
+      const b = mkBtn(i+1, false, () => { iPage=i; renderIcons(); scrollTop(); });
+      if (i===iPage) b.classList.add('on');
+      p.appendChild(b);
+      prev = i;
+    });
+  }
+
+  p.appendChild(mkBtn('›', iPage>=total-1, () => { iPage++;       renderIcons(); scrollTop(); }));
+  p.appendChild(mkBtn('»', iPage>=total-1, () => { iPage=total-1; renderIcons(); scrollTop(); }));
+}
+
+function mkBtn(label, disabled, cb) {
+  const b = document.createElement('button');
+  b.className='pb'; b.textContent=label; b.disabled=disabled;
+  if (!disabled) b.onclick = cb;
+  return b;
+}
+
+function scrollTop() { window.scrollTo({top:0, behavior:'smooth'}); }
+
+// --- Icon selection ---
+
+async function selectIcon(id) {
+  const meta = getIconMeta(id);
+  sel.icon = id;
+  if (selectedIconEl && Number(selectedIconEl.dataset.id) !== id) selectedIconEl.classList.remove('sel');
+  selectedIconEl = document.querySelector(`.iitem[data-id="${id}"]`);
+  selectedIconEl?.classList.add('sel');
+
+  const cs = document.getElementById('cosm-section');
+  cs.style.display=''; cs.className=''; void cs.offsetWidth; cs.className='open';
+  cs.scrollIntoView({behavior:'smooth', block:'start'});
+  if (!cosmeticsRendered) {
+    renderBorders();
+    renderCrystals();
+    cosmeticsRendered = true;
+  }
+
+  document.getElementById('sel-img').src = ICON_URL(id);
+  document.getElementById('sel-title').textContent = getIconName(id);
+  document.getElementById('sel-sub').innerHTML = `${getIconHowToGet(id)}${Array.isArray(meta?.disabledRegions) && meta.disabledRegions.length ? ` <em>Unavailable in: ${meta.disabledRegions.join(', ')}</em>` : ''}`;
+  document.getElementById('icon-swatches').innerHTML = '';
+  const metaWrap = document.getElementById('sel-meta');
+  metaWrap.innerHTML = '';
+  const chips = [
+    meta?.yearReleased ? `Released ${meta.yearReleased}` : null,
+    meta?.isLegacy ? 'Legacy' : null,
+    getLocalizedField(meta?.rarities, 'rarity') !== '' ? getRarityLabel(getLocalizedField(meta.rarities, 'rarity')) : null
+  ].filter(Boolean);
+  chips.forEach(label => {
+    const chip = document.createElement('span');
+    chip.className = 'sel-chip';
+    chip.textContent = label;
+    metaWrap.appendChild(chip);
+  });
+
+  const colors = await getPal(ICON_URL(id), PALETTE_SIZE, 'icon');
+  pals.icon = colors;
+
+  const sw = document.getElementById('icon-swatches');
+  colors.slice(0, ICON_DISPLAY_SWATCH_LIMIT).forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
+  document.getElementById('abtn').disabled = false;
+  updateCombinedPalette();
+}
+
+// --- Cosmetic panels ---
+
+function renderBorders() {
+  const g = document.getElementById('bd-grid');
+  g.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  const thumb = document.getElementById('bd-thumb');
+  thumb.src = sel.border !== null ? BORDERS[sel.border].url : `${THEMED}/theme-1-border.png`;
+  thumb.style.opacity = sel.border !== null ? '1' : '.5';
+  BORDERS.forEach((b,i) => {
+    const item = mkMiniItem(b.url, sel.border===i, () => pickCosmetic('border',i,b.url));
+    item.title = b.n;
+    frag.appendChild(item);
+  });
+  if (sel.border !== null) frag.appendChild(mkDesel(() => deselect('border')));
+  g.appendChild(frag);
+}
+
+function renderCrystals() {
+  const g = document.getElementById('cr-grid');
+  g.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  const thumb = document.getElementById('cr-thumb');
+  thumb.src = sel.crystal !== null ? CRYSTALS[sel.crystal].url : CRYSTALS[5].url;
+  thumb.style.opacity = sel.crystal !== null ? '1' : '.5';
+  CRYSTALS.forEach((c,i) => {
+    const item = mkMiniItem(c.url, sel.crystal===i, () => pickCosmetic('crystal',i,c.url));
+    item.classList.add('crystal-item');
+    item.title = c.n;
+    frag.appendChild(item);
+  });
+  if (sel.crystal !== null) frag.appendChild(mkDesel(() => deselect('crystal')));
+  g.appendChild(frag);
+}
+
+function mkMiniItem(url, active, cb) {
+  const d = document.createElement('div');
+  d.className = 'mi' + (active ? ' sel' : '');
+  const img = document.createElement('img');
+  img.className = 'ld';
+  img.src = url;
+  img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.onload  = () => img.classList.remove('ld');
+  img.onerror = () => { d.style.opacity='.25'; };
+  d.appendChild(img);
+  d.addEventListener('click', cb);
+  return d;
+}
+
+function mkDesel(cb) {
+  const d = document.createElement('div');
+  d.className = 'mi desel';
+  d.textContent = '✕';
+  d.title = 'Remove selection';
+  d.addEventListener('click', cb);
+  return d;
+}
+
+async function pickCosmetic(type, val, url) {
+  sel[type] = val;
+  if (type==='border') renderBorders();
+  else renderCrystals();
+  pals[type] = await getPal(url);
+  updateCombinedPalette();
+}
+
+function deselect(type) {
+  sel[type] = null;
+  pals[type] = [];
+  if (type==='border') renderBorders();
+  else renderCrystals();
+  updateCombinedPalette();
+}
+
+function updateCombinedPalette() {
+  const all = getCombinedPalette();
+  const sw  = document.getElementById('comb-sw');
+  sw.innerHTML = '';
+  all.forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
+  document.getElementById('src-icon').classList.toggle('on', !!pals.icon.length);
+  document.getElementById('src-bd').classList.toggle('on',   !!pals.border.length);
+  document.getElementById('src-cr').classList.toggle('on',   !!pals.crystal.length);
+}
+
+function getResultColumns() { return getGridColumns('rgrid'); }
+
+// Show only full rows at first; the final partial row is revealed via Load More.
+function computeVisibleResultCount(total) {
+  if (!total) return 0;
+  const fullRowsWithinTop = Math.floor(TOP / resultCols);
+  const initialRows = Math.max(fullRowsWithinTop, 1);
+  if (!resultRowsShown) resultRowsShown = initialRows;
+  let count = resultRowsShown * resultCols;
+  if (count >= total) return total;
+  const remaining = total - count;
+  if (remaining < resultCols) return total;
+  return count;
+}
+
+function updateLoadMore(total, shown) {
+  const wrap = document.getElementById('rmore');
+  const btn = document.getElementById('more-btn');
+  if (shown >= total) {
+    wrap.style.display = 'none';
+    return;
+  }
+  const remaining = total - shown;
+  btn.textContent = remaining < resultCols ? `Load Last ${remaining}` : 'Load More';
+  wrap.style.display = 'flex';
+}
+
+function renderResults() {
+  const g = document.getElementById('rgrid');
+  if (!scoredResults.length) {
+    g.innerHTML = '<div class="msgb">No results found.</div>';
+    document.getElementById('rmore').style.display = 'none';
+    document.getElementById('rcnt').textContent = '0 Matches';
+    return;
+  }
+
+  resultCols = getResultColumns();
+  const shownCount = computeVisibleResultCount(scoredResults.length);
+  const visible = scoredResults.slice(0, shownCount);
+  document.getElementById('rcnt').textContent = `${shownCount} of ${scoredResults.length}`;
+  g.innerHTML = '';
+  const frag = document.createDocumentFragment();
+
+  visible.forEach(item => {
+    const pct   = Math.round((item.score / Math.max(scoredResults[0].score, .001)) * 100);
+    const card  = document.createElement('div'); card.className='scard';
+    const iw    = document.createElement('div'); iw.className='simgw';
+    const img   = document.createElement('img'); img.className='ld';
+    img.src=item.url; img.alt=item.skinName;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.onload  = () => img.classList.remove('ld');
+    img.onerror = () => { iw.style.background='#111520'; };
+    const bar  = document.createElement('div'); bar.className='mbar';
+    const fill = document.createElement('div'); fill.className='mfill'; fill.style.width='0';
+    bar.appendChild(fill); setTimeout(()=>fill.style.width=pct+'%', 80);
+    const badge = document.createElement('div'); badge.className='mbadge'; badge.textContent=pct+'%';
+    iw.append(img, bar, badge);
+    const si  = document.createElement('div'); si.className='sinfo';
+    const sn  = document.createElement('div'); sn.className='sn'; sn.textContent=item.skinName;
+    si.append(sn);
+    card.append(iw, si);
+    frag.appendChild(card);
+  });
+
+  g.appendChild(frag);
+  updateLoadMore(scoredResults.length, shownCount);
+}
+
+// --- Search / Sort ---
+
+document.getElementById('isrch').addEventListener('input', e => {
+  clearTimeout(iconSearchTimer);
+  const { value } = e.target;
+  iconSearchTimer = window.setTimeout(() => applyIconFilter(value), INPUT_DEBOUNCE_MS);
+});
+
+document.getElementById('isort').addEventListener('change', e => {
+  sortIcons(e.target.value);
+  applyIconFilter(document.getElementById('isrch').value);
+});
+
+document.getElementById('igrid').addEventListener('click', e => {
+  const item = e.target.closest('.iitem');
+  if (!item) return;
+  selectIcon(Number(item.dataset.id));
+});
+
+// --- Analyze ---
+
+document.getElementById('abtn').addEventListener('click', async () => {
+  const token = ++analyzeToken;
+  const combined = getCombinedPalette();
+  if (!combined.length) return;
+  // Match each splash with the same number of colors currently active in the combined palette.
+  const comparisonPaletteSize = combined.length;
+
+  const rs = document.getElementById('rsec');
+  rs.style.display = 'block';
+  rs.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('rgrid').innerHTML = `<div class="msgb"><div class="spin"></div>${skinsOK ? `Analyzing ${skinDB.length} skins...` : 'Loading skin data...'}</div>`;
+  document.getElementById('rcnt').textContent = '–';
+  document.getElementById('rmore').style.display = 'none';
+  document.getElementById('abtn').disabled = true;
+
+  if (!skinsOK) await new Promise(res => { const check=()=>skinsOK?res():setTimeout(check,400); check(); });
+
+  const scored = [];
+  const pending = [];
+
+  // Fast path: skins with prebuilt palettes need no image loading
+  const prebuilt = skinDB.filter(s => s.palette?.length);
+  const needsAnalysis = skinDB.filter(s => !s.palette?.length);
+
+  for (const s of prebuilt) {
+    scored.push({...s, score: colorSim(combined, s.palette)});
+  }
+
+  // For any skin without a prebuilt palette, check IndexedDB cache first
+  for (let i=0; i<needsAnalysis.length; i+=ANALYZE_BATCH_SIZE) {
+    if (token !== analyzeToken) return;
+    await Promise.all(needsAnalysis.slice(i,i+ANALYZE_BATCH_SIZE).map(async s => {
+      const pal = await getCachedPal(s.analysisUrl || s.url, comparisonPaletteSize);
+      if (pal?.length) scored.push({...s, score:colorSim(combined,pal)});
+      else pending.push(s);
+    }));
+    if (i%200===0 || i+ANALYZE_BATCH_SIZE>=needsAnalysis.length)
+      setStatus(`Checking cache ${Math.min(i+ANALYZE_BATCH_SIZE, needsAnalysis.length)}/${needsAnalysis.length}...`);
+  }
+
+  scored.sort((a,b) => b.score-a.score);
+  scoredResults = scored;
+  resultRowsShown = 0;
+  renderResults();
+
+  setStatus(
+    pending.length
+      ? `${scored.length} matches ready, refining ${pending.length} more...`
+      : `${scored.length} matches ready`
+  );
+
+  for (let i=0; i<pending.length; i+=ANALYZE_BATCH_SIZE) {
+    if (token !== analyzeToken) return;
+    await Promise.all(pending.slice(i,i+ANALYZE_BATCH_SIZE).map(async s => {
+      const pal = await getPal(s.analysisUrl || s.url, comparisonPaletteSize);
+      if (pal.length) scored.push({...s, score:colorSim(combined,pal)});
+    }));
+    if (i%100===0 || i+ANALYZE_BATCH_SIZE>=pending.length) {
+      scored.sort((a,b) => b.score-a.score);
+      scoredResults = scored;
+      renderResults();
+      setStatus(`Refining matches ${Math.min(i+ANALYZE_BATCH_SIZE, pending.length)}/${pending.length}...`);
+    }
+  }
+
+  if (token !== analyzeToken) return;
+  scored.sort((a,b) => b.score-a.score);
+  scoredResults = scored;
+  renderResults();
+  setStatus(`${skinDB.length} skins analyzed`);
+  document.getElementById('abtn').disabled = false;
+});
+
+document.getElementById('more-btn').addEventListener('click', () => {
+  resultRowsShown += LOAD_MORE_ROWS;
+  renderResults();
+});
+
+window.addEventListener('resize', () => {
+  const cols = getGridColumns('igrid');
+  if (cols !== iconCols) renderIcons();
+  if (!scoredResults.length) return;
+  const resultGridCols = getResultColumns();
+  if (resultGridCols === resultCols) return;
+  resultCols = resultGridCols;
+  renderResults();
+});
+
+function setStatus(t) { document.getElementById('stxt').textContent = t; }
+
+init();
+</script>
+</body>
+</html>

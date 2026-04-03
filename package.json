@@ -1,0 +1,13 @@
+{
+  "name": "lol-skin-matcher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate-palettes.js"
+  },
+  "dependencies": {
+    "canvas": "^2.11.2",
+    "node-fetch": "^3.3.2"
+  }
+}
