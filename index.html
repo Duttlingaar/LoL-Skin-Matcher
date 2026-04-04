@@ -880,7 +880,7 @@ function updateCombinedPalette() {
   sw.innerHTML = '';
   all.forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
   const existingDed = document.getElementById('ded-msg');
-  if (sel.icon === 6943 && sel.border === 9 && sel.crystal === 5) {
+  if ((sel.icon === 6943 || sel.icon === 4535) && sel.border === 9 && sel.crystal === 5) {
     if (!existingDed) {
       const d = document.createElement('span');
       d.id = 'ded-msg';
