@@ -878,11 +878,17 @@ function updateCombinedPalette() {
   const sw  = document.getElementById('comb-sw');
   sw.innerHTML = '';
   all.forEach(c => { const s=document.createElement('div'); s.className='swatch'; s.style.background=c; s.title=c; sw.appendChild(s); });
+  const existingDed = document.getElementById('ded-msg');
   if (sel.icon === 6943 && sel.border === 9 && sel.crystal === 5) {
-    const d = document.createElement('span');
-    d.textContent = 'Dedicated to Kichiyo 🎀';
-    d.style.cssText = 'font-size:11px;color:var(--text2);font-style:italic;font-weight:300;align-self:center;white-space:nowrap;margin-left:4px';
-    sw.appendChild(d);
+    if (!existingDed) {
+      const d = document.createElement('span');
+      d.id = 'ded-msg';
+      d.textContent = 'Dedicated to Kichiyo';
+      d.style.cssText = 'font-size:11px;color:var(--text2);font-style:italic;font-weight:300;align-self:center;white-space:nowrap';
+      document.querySelector('.psrc').insertAdjacentElement('beforebegin', d);
+    }
+  } else if (existingDed) {
+    existingDed.remove();
   }
   document.getElementById('src-icon').classList.toggle('on', !!pals.icon.length);
   document.getElementById('src-bd').classList.toggle('on',   !!pals.border.length);
